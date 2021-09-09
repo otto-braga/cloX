@@ -1,3 +1,4 @@
+import json
 import cv2
 import mediapipe
 from time import time
@@ -6,23 +7,34 @@ from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
 from Clock import Clock
 
-clocks = [
-    Clock('T01', (1,4), (1,8), (1,0), (1,9)),
-    Clock('T02', (2,4), (2,8), (2,0), (2,9))
-]
-
 def main():
-    # setup
-    # -----
+    # project load
+    # ------------
 
-    camera_id = 0
-    # camera_id = "http://192.168.2.101:4747/video"
-    camera_width = 640
-    camera_height = 480
-    camera_fps = 30
+    project = None
+    clocks = []
 
-    min_detect_conf = 0.8
-    min_track_conf = 0.8
+    with open('examples/TEST-local_camera.json') as project_file:
+        project = json.load(project_file)
+
+    camera_id = project['setup']['camera_id']
+    camera_width = project['setup']['camera_width']
+    camera_height = project['setup']['camera_height']
+    camera_fps = project['setup']['camera_fps']
+
+    min_detect_conf = project['setup']['mp_min_detect_conf']
+    min_track_conf = project['setup']['mp_min_track_conf']
+
+    for clock in project['clocks']:
+        clocks.append(
+            Clock(
+                clock['name'],
+                clock['i_p_clock'],
+                clock['i_p_hand'],
+                clock['i_p_ref_A'],
+                clock['i_p_ref_B']
+            )
+        )
 
     # initialization
     # --------------

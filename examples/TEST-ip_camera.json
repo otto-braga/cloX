@@ -1,0 +1,26 @@
+{
+    "setup": {
+        "camera_id": "http://192.168.2.101:4747/video",
+        "camera_width": 640,
+        "camera_height": 480,
+        "camera_fps": 30,
+        "mp_min_detect_conf": 0.5,
+        "mp_min_track_conf": 0.8
+    },
+    "clocks": [
+        {
+            "name": "T01",
+            "i_p_clock": [1,4],
+            "i_p_hand": [1,8],
+            "i_p_ref_A": [1,0],
+            "i_p_ref_B": [1,9]
+        },
+        {
+            "name": "T02",
+            "i_p_clock": [2,4],
+            "i_p_hand": [2,8],
+            "i_p_ref_A": [2,0],
+            "i_p_ref_B": [2,9]
+        }
+    ]
+}
