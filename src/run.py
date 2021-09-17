@@ -14,7 +14,7 @@ def main():
     project = None
     clocks = []
 
-    with open('examples/TEST-local_camera.json') as project_file:
+    with open('examples/TEST-ip_camera.json') as project_file:
         project = json.load(project_file)
 
     camera_id = project['setup']['camera_id']

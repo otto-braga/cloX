@@ -11,10 +11,11 @@ class VideoStream:
         self.height = self.stream.get(4)
         self.fps = self.stream.get(5)
         self.ret, self.frame = self.stream.read()
+        self.thread = None
         self.stop = False
 
     def start(self):
-        Thread(target=self.update, args=()).start()
+        self.thread = Thread(target=self.update, args=()).start()
         return self
 
     def update(self):

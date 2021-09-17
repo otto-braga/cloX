@@ -12,10 +12,10 @@ class Clock:
     ):
         self.name = name
 
-        self.i_p_clock = index_p_clock
-        self.i_p_hand = index_hand_tip_point
-        self.i_p_ref_A = index_reference_point_A
-        self.i_p_ref_B = index_reference_point_B
+        self.i_p_clock = numpy.array(index_p_clock)
+        self.i_p_hand = numpy.array(index_hand_tip_point)
+        self.i_p_ref_A = numpy.array(index_reference_point_A)
+        self.i_p_ref_B = numpy.array(index_reference_point_B)
 
         self.p_clock = numpy.zeros([2], dtype=int)
         self.p_hand = numpy.zeros([2], dtype=int)
@@ -42,8 +42,21 @@ class Clock:
         self.flag_c = False
 
     def _setup(self, mp):
-        p_clock = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
-        p_hand = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
+        if numpy.any(self.i_p_clock < 0):
+            p_clock = numpy.array(
+                numpy.abs(self.i_p_clock) * mp.image_size,
+                dtype=int
+            )
+        else:
+            p_clock = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
+
+        if numpy.any(self.i_p_hand < 0):
+            p_hand = numpy.array(
+                numpy.abs(self.i_p_hand) * mp.image_size,
+                dtype=int
+            )
+        else:
+            p_hand = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
 
         p_ref_A = mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
         p_ref_B = mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]

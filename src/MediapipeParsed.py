@@ -2,6 +2,7 @@ import numpy
 
 class MediapipeParsed:
     def __init__(self, results, image_size):
+        self.image_size = image_size
         self.initial_value = -1
 
         self.landmark = numpy.array(
