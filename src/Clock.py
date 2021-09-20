@@ -97,10 +97,15 @@ class Clock:
 
         self.x_r_hand = self.p_norm[0]
         self.y_r_hand = self.p_norm[1]
+
         self.r_hand = numpy.linalg.norm(self.p_norm)
+
         self.phi_r_hand = numpy.degrees(
             numpy.arctan2(self.x_r_hand, self.y_r_hand)
-        )
+        ) 
+        self.phi_r_hand = -self.phi_r_hand + 90
+        if self.phi_r_hand < 0: self.phi_r_hand = self.phi_r_hand + 360
+        self.phi_r_hand = self.phi_r_hand / 360
 
     def update(self, mp):
         self._setup(mp)

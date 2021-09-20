@@ -1,4 +1,5 @@
 import json
+import os
 import cv2
 import mediapipe
 from time import time
@@ -7,6 +8,8 @@ from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
 from Clock import Clock
 
+import osc
+
 def main():
     # project load
     # ------------
@@ -14,7 +17,7 @@ def main():
     project = None
     clocks = []
 
-    with open('examples/TEST-ip_camera.json') as project_file:
+    with open('examples/TEST-local_camera.json') as project_file:
         project = json.load(project_file)
 
     camera_id = project['setup']['camera_id']
@@ -35,6 +38,9 @@ def main():
                 clock['i_p_ref_B']
             )
         )
+    
+    osc_ip = '127.0.0.1'
+    osc_port = 1844
 
     # initialization
     # --------------
@@ -52,6 +58,8 @@ def main():
         min_detection_confidence = min_detect_conf,
         min_tracking_confidence = min_track_conf
     )
+
+    osc_client = osc.client_setup(osc_ip, osc_port)
 
     # OpenCV window
     # -------------
@@ -93,7 +101,7 @@ def main():
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
-        # calibration handler
+        # OpencCV window calibration manager
         # -------------------
 
         if (
@@ -131,14 +139,20 @@ def main():
 
         cv2.imshow(window_title, image)
 
-        # quitting handler
-        # ----------------
+        # send OSC messages
+        # -------------------
+
+        osc_messages = osc.make_messages(clocks)
+        osc.send(osc_client, osc_messages)
+
+        # OpenCV window quitting manager
+        # ------------------------------
 
         if cv2.waitKey(5) == 27 or cv2.getTrackbarPos('quit', window_title) == 1:
             break
 
-    # close
-    # -----
+    # quit
+    # ----
     
     mp_holistic.close()
     video.stop = True
