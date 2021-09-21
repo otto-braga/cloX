@@ -1,5 +1,5 @@
 import json
-import os
+import sys
 import cv2
 import mediapipe
 from time import time
@@ -14,10 +14,12 @@ def main():
     # project load
     # ------------
 
+    project_path = sys.argv[1]
+
     project = None
     clocks = []
 
-    with open('examples/TEST-local_camera.json') as project_file:
+    with open(project_path) as project_file:
         project = json.load(project_file)
 
     camera_id = project['setup']['camera_id']
@@ -40,7 +42,7 @@ def main():
         )
     
     osc_ip = '127.0.0.1'
-    osc_port = 1844
+    osc_port = 4747
 
     # initialization
     # --------------
