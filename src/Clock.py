@@ -22,7 +22,10 @@ class Clock:
         self.p_ref_A = numpy.zeros([2], dtype=int)
         self.p_ref_B = numpy.zeros([2], dtype=int)
 
-        self.p_trans = numpy.zeros([2], dtype=int)
+        self.p_clock_norm = numpy.zeros([2], dtype=int)
+        self.p_hand_norm = numpy.zeros([2], dtype=int)
+
+        self.p_tran = numpy.zeros([2], dtype=int)
         self.p_norm = numpy.zeros([2], dtype=int)
         self.m_clock = 1.0
         self.m_ref = 1.0
@@ -72,11 +75,14 @@ class Clock:
             self.p_ref_A = p_ref_A
             self.p_ref_B = p_ref_B
 
+            self.p_clock_norm = p_clock / mp.image_size
+            self.p_hand_norm = p_hand / mp.image_size
+
     def _translation(self):
-        self.p_trans = self.p_hand - self.p_clock
+        self.p_tran = self.p_hand - self.p_clock
 
     def _calibration(self):
-        self.m_clock = numpy.linalg.norm(self.p_trans)
+        self.m_clock = numpy.linalg.norm(self.p_tran)
         self.m_ref = numpy.linalg.norm(self.p_ref_A - self.p_ref_B)
 
         if self.en_c:
@@ -92,7 +98,7 @@ class Clock:
             self.r_clock = self.k_r_clock
 
     def _normalization(self):
-        self.p_norm = self.p_trans / self.r_clock
+        self.p_norm = self.p_tran / self.r_clock
         self.p_norm[1] = -self.p_norm[1]
 
         self.x_r_hand = self.p_norm[0]
