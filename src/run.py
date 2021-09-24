@@ -31,17 +31,20 @@ def main():
     min_track_conf = project['setup']['mp_min_track_conf']
 
     for clock in project['clocks']:
-        if len(clock) > 5 : scale = clock['scale']
-        else: scale = True
-
         clocks.append(
             Clock(
-                clock['name'],
-                clock['i_p_clock'],
-                clock['i_p_hand'],
-                clock['i_p_ref_A'],
-                clock['i_p_ref_B'],
-                scale
+                clock["name"],
+                clock["p_clock_mode"],
+                clock["i_p_clock"],
+                clock["i_p_clock_2"],
+                clock["p_hand_mode"],
+                clock["i_p_hand"],
+                clock["i_p_hand_2"],
+                clock["scale_mode"],
+                clock["i_p_ref_A"],
+                clock["i_p_ref_B"],
+                clock["i_p_ref_C"],
+                clock["i_p_ref_D"]
             )
         )
     
@@ -167,8 +170,10 @@ def main():
 def draw_clock(clock, image):
     print(
         clock.name, 
-        " (", clock.r_hand, ", ", clock.phi_r_hand, ")", 
-        " (", clock.p_clock, ", ", clock.p_hand, ")"
+        " | p_hand polar (", clock.r_hand, ", ", clock.phi_r_hand, ")", 
+        " | p_clock ", clock.p_clock,
+        " | p_hand ", clock.p_hand,
+        " | scale ", clock.scale
     )
     color = (0,0,128)
     cv2.circle(image, clock.p_clock, int(clock.r_clock), color, 1)

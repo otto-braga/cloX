@@ -4,23 +4,38 @@ class Clock:
     def __init__(
         self,
         name='',
+
+        p_clock_mode = 0,
         index_p_clock = (0,0),
-        index_hand_tip_point = (0,0),
-        index_reference_point_A = (0,0),
-        index_reference_point_B = (0,0),
-        en_s = True
+        index_p_clock_2 = (0,0),
+
+        p_hand_mode = 0,
+        index_p_hand = (0,0),
+        index_p_hand_2 = (0,0),
+
+        scale_mode = 0,
+        index_p_ref_A = (0,0),
+        index_p_ref_B = (0,0),
+        index_p_ref_C = (0,0),
+        index_p_ref_D = (0,0)
     ):
         self.name = name
 
         self.i_p_clock = numpy.array(index_p_clock)
-        self.i_p_hand = numpy.array(index_hand_tip_point)
-        self.i_p_ref_A = numpy.array(index_reference_point_A)
-        self.i_p_ref_B = numpy.array(index_reference_point_B)
+        self.i_p_clock_2 = numpy.array(index_p_clock_2)
+        self.i_p_hand = numpy.array(index_p_hand)
+        self.i_p_hand_2 = numpy.array(index_p_hand_2)
+        self.i_p_ref_A = numpy.array(index_p_ref_A)
+        self.i_p_ref_B = numpy.array(index_p_ref_B)
+        self.i_p_ref_C = numpy.array(index_p_ref_C)
+        self.i_p_ref_D = numpy.array(index_p_ref_D)
 
         self.p_clock = numpy.zeros([2], dtype=int)
         self.p_hand = numpy.zeros([2], dtype=int)
         self.p_ref_A = numpy.zeros([2], dtype=int)
         self.p_ref_B = numpy.zeros([2], dtype=int)
+        self.p_ref_C = numpy.zeros([2], dtype=int)
+        self.p_ref_D = numpy.zeros([2], dtype=int)
 
         self.p_clock_norm = numpy.zeros([2], dtype=int)
         self.p_hand_norm = numpy.zeros([2], dtype=int)
@@ -28,8 +43,10 @@ class Clock:
         self.p_tran = numpy.zeros([2], dtype=int)
         self.p_norm = numpy.zeros([2], dtype=int)
         self.m_clock = 1.0
-        self.m_ref = 1.0
-        self.k_m_ref = 1.0
+        self.m_ref_AB = 1.0
+        self.m_ref_CD = 1.0
+        self.k_m_ref_AB = 1.0
+        self.k_m_ref_CD = 1.0
         self.k_r_clock = 1.0
 
         self.scale = 1.0
@@ -40,40 +57,86 @@ class Clock:
         self.x_r_hand = 0.0
         self.y_r_hand = 0.0
 
+        self.p_clock_mode = p_clock_mode
+        self.p_hand_mode = p_hand_mode
+        self.scale_mode = scale_mode
         self.en_c = False
-        self.en_s = en_s
         self.flag_c = False
 
     def _setup(self, mp):
-        if numpy.any(self.i_p_clock < 0):
+        if self.p_clock_mode == 0:
+            p_clock = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
+        elif self.p_clock_mode == 1:
+            p_clock_1 = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
+            p_clock_2 = mp.landmark[self.i_p_clock_2[0]][self.i_p_clock_2[1]]
+            p_clock = numpy.array(
+                [
+                    min(p_clock_1[0], p_clock_2[0])
+                    + (abs(p_clock_1[0] - p_clock_2[0]) / 2),
+
+                    min(p_clock_1[1], p_clock_2[1])
+                    + (abs(p_clock_1[1] - p_clock_2[1]) / 2),
+                ],
+                dtype=int
+            )
+        else:
             p_clock = numpy.array(
                 numpy.abs(self.i_p_clock) * mp.image_size,
                 dtype=int
             )
-        else:
-            p_clock = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
+        
+        if self.p_hand_mode == 0:
+            p_hand = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
+        elif self.p_hand_mode == 1:
+            p_hand_1 = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
+            p_hand_2 = mp.landmark[self.i_p_hand_2[0]][self.i_p_hand_2[1]]
+            p_hand = numpy.array(
+                [
+                    min(p_hand_1[0], p_hand_2[0])
+                    + (abs(p_hand_1[0] - p_hand_2[0]) / 2),
 
-        if numpy.any(self.i_p_hand < 0):
+                    min(p_hand_1[1], p_hand_2[1])
+                    + (abs(p_hand_1[1] - p_hand_2[1]) / 2),
+                ],
+                dtype=int
+            )
+        else:
             p_hand = numpy.array(
                 numpy.abs(self.i_p_hand) * mp.image_size,
                 dtype=int
             )
-        else:
-            p_hand = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
 
-        p_ref_A = mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
-        p_ref_B = mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+        if self.scale_mode == 0:
+            p_ref_A = numpy.zeros([2], dtype=int)
+            p_ref_B = numpy.zeros([2], dtype=int)
+            p_ref_C = numpy.zeros([2], dtype=int)
+            p_ref_D = numpy.zeros([2], dtype=int)
+        elif self.scale_mode == 1:
+            p_ref_A = mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
+            p_ref_B = mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+            p_ref_C = numpy.zeros([2], dtype=int)
+            p_ref_D = numpy.zeros([2], dtype=int)
+        else:
+            p_ref_A = mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
+            p_ref_B = mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+            p_ref_C = mp.landmark[self.i_p_ref_C[0]][self.i_p_ref_C[1]]
+            p_ref_D = mp.landmark[self.i_p_ref_D[0]][self.i_p_ref_D[1]]
 
         if (
-            numpy.all(p_clock > 0) and
-            numpy.all(p_hand > 0) and
-            numpy.all(p_ref_A > 0) and
-            numpy.all(p_ref_B > 0)
+            numpy.all(p_clock > 0)
+            and numpy.all(p_hand > 0)
+            and numpy.all(p_ref_A > 0)
+            and numpy.all(p_ref_B > 0)
+            and numpy.all(p_ref_C > 0)
+            and numpy.all(p_ref_D > 0)
         ):
             self.p_clock = p_clock
             self.p_hand = p_hand
+
             self.p_ref_A = p_ref_A
             self.p_ref_B = p_ref_B
+            self.p_ref_C = p_ref_C
+            self.p_ref_D = p_ref_D
 
             self.p_clock_norm = p_clock / mp.image_size
             self.p_hand_norm = p_hand / mp.image_size
@@ -83,20 +146,37 @@ class Clock:
 
     def _calibration(self):
         self.m_clock = numpy.linalg.norm(self.p_tran)
-        if self.en_s: 
-            self.m_ref = numpy.linalg.norm(self.p_ref_A - self.p_ref_B)
+
+        if self.scale_mode == 0:
+            self.m_ref_AB = 1
+            self.m_ref_CD = 1
+        elif self.scale_mode == 1:
+            m_ref = numpy.linalg.norm(self.p_ref_A - self.p_ref_B)
+            self.m_ref_AB = m_ref if m_ref > 0 else self.m_ref_AB
+            self.m_ref_CD = 1.0
+        else:
+            m_ref = numpy.linalg.norm(self.p_ref_A - self.p_ref_B)
+            self.m_ref_AB = m_ref if m_ref > 0 else self.m_ref_AB
+            m_ref = numpy.linalg.norm(self.p_ref_C - self.p_ref_D)
+            self.m_ref_CD = m_ref if m_ref > 0 else self.m_ref_CD
 
         if self.en_c:
             self.k_r_clock = self.m_clock
-            self.k_m_ref = self.m_ref
+            self.k_m_ref_AB = self.m_ref_AB
+            self.k_m_ref_CD = self.m_ref_CD
             self.flag_c = True
 
     def _scaling(self):
-        if self.en_s:
-            self.scale = self.m_ref / self.k_m_ref
+        if self.scale_mode == 0:
+            self.r_clock = self.k_r_clock
+        elif self.scale_mode == 1:
+            self.scale = self.m_ref_AB / self.k_m_ref_AB
             self.r_clock = self.k_r_clock * self.scale
         else:
-            self.r_clock = self.k_r_clock
+            scale_AB = self.m_ref_AB / self.k_m_ref_AB
+            scale_CD = self.m_ref_CD / self.k_m_ref_CD
+            self.scale = max(scale_AB, scale_CD)
+            self.r_clock = self.k_r_clock * self.scale
 
     def _normalization(self):
         self.p_norm = self.p_tran / self.r_clock
