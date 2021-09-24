@@ -83,7 +83,8 @@ class Clock:
 
     def _calibration(self):
         self.m_clock = numpy.linalg.norm(self.p_tran)
-        self.m_ref = numpy.linalg.norm(self.p_ref_A - self.p_ref_B)
+        if self.en_s: 
+            self.m_ref = numpy.linalg.norm(self.p_ref_A - self.p_ref_B)
 
         if self.en_c:
             self.k_r_clock = self.m_clock

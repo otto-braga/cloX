@@ -31,13 +31,17 @@ def main():
     min_track_conf = project['setup']['mp_min_track_conf']
 
     for clock in project['clocks']:
+        if len(clock) > 5 : scale = clock['scale']
+        else: scale = True
+
         clocks.append(
             Clock(
                 clock['name'],
                 clock['i_p_clock'],
                 clock['i_p_hand'],
                 clock['i_p_ref_A'],
-                clock['i_p_ref_B']
+                clock['i_p_ref_B'],
+                scale
             )
         )
     
