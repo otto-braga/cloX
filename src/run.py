@@ -30,16 +30,19 @@ def main():
     min_detect_conf = project['setup']['mp_min_detect_conf']
     min_track_conf = project['setup']['mp_min_track_conf']
 
+    osc_ip = project['setup']['osc_ip']
+    osc_port = project['setup']['osc_port']
+
     for clock in project['clocks']:
         clocks.append(
             Clock(
                 clock["name"],
                 clock["p_clock_mode"],
-                clock["i_p_clock"],
-                clock["i_p_clock_2"],
+                clock["i_p_clock_A"],
+                clock["i_p_clock_B"],
                 clock["p_hand_mode"],
-                clock["i_p_hand"],
-                clock["i_p_hand_2"],
+                clock["i_p_hand_A"],
+                clock["i_p_hand_B"],
                 clock["scale_mode"],
                 clock["i_p_ref_A"],
                 clock["i_p_ref_B"],
@@ -47,9 +50,6 @@ def main():
                 clock["i_p_ref_D"]
             )
         )
-    
-    osc_ip = '127.0.0.1'
-    osc_port = 4747
 
     # initialization
     # --------------

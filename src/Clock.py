@@ -6,12 +6,12 @@ class Clock:
         name='',
 
         p_clock_mode = 0,
-        index_p_clock = (0,0),
-        index_p_clock_2 = (0,0),
+        index_p_clock_A = (0,0),
+        index_p_clock_B = (0,0),
 
         p_hand_mode = 0,
-        index_p_hand = (0,0),
-        index_p_hand_2 = (0,0),
+        index_p_hand_A = (0,0),
+        index_p_hand_B = (0,0),
 
         scale_mode = 0,
         index_p_ref_A = (0,0),
@@ -21,10 +21,10 @@ class Clock:
     ):
         self.name = name
 
-        self.i_p_clock = numpy.array(index_p_clock)
-        self.i_p_clock_2 = numpy.array(index_p_clock_2)
-        self.i_p_hand = numpy.array(index_p_hand)
-        self.i_p_hand_2 = numpy.array(index_p_hand_2)
+        self.i_p_clock_A = numpy.array(index_p_clock_A)
+        self.i_p_clock_B = numpy.array(index_p_clock_B)
+        self.i_p_hand_A = numpy.array(index_p_hand_A)
+        self.i_p_hand_B = numpy.array(index_p_hand_B)
         self.i_p_ref_A = numpy.array(index_p_ref_A)
         self.i_p_ref_B = numpy.array(index_p_ref_B)
         self.i_p_ref_C = numpy.array(index_p_ref_C)
@@ -65,44 +65,44 @@ class Clock:
 
     def _setup(self, mp):
         if self.p_clock_mode == 0:
-            p_clock = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
+            p_clock = mp.landmark[self.i_p_clock_A[0]][self.i_p_clock_A[1]]
         elif self.p_clock_mode == 1:
-            p_clock_1 = mp.landmark[self.i_p_clock[0]][self.i_p_clock[1]]
-            p_clock_2 = mp.landmark[self.i_p_clock_2[0]][self.i_p_clock_2[1]]
+            p_clock_A = mp.landmark[self.i_p_clock_A[0]][self.i_p_clock_A[1]]
+            p_clock_B = mp.landmark[self.i_p_clock_B[0]][self.i_p_clock_B[1]]
             p_clock = numpy.array(
                 [
-                    min(p_clock_1[0], p_clock_2[0])
-                    + (abs(p_clock_1[0] - p_clock_2[0]) / 2),
+                    min(p_clock_A[0], p_clock_B[0])
+                    + (abs(p_clock_A[0] - p_clock_B[0]) / 2),
 
-                    min(p_clock_1[1], p_clock_2[1])
-                    + (abs(p_clock_1[1] - p_clock_2[1]) / 2),
+                    min(p_clock_A[1], p_clock_B[1])
+                    + (abs(p_clock_A[1] - p_clock_B[1]) / 2),
                 ],
                 dtype=int
             )
         else:
             p_clock = numpy.array(
-                numpy.abs(self.i_p_clock) * mp.image_size,
+                numpy.abs(self.i_p_clock_A) * mp.image_size,
                 dtype=int
             )
         
         if self.p_hand_mode == 0:
-            p_hand = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
+            p_hand = mp.landmark[self.i_p_hand_A[0]][self.i_p_hand_A[1]]
         elif self.p_hand_mode == 1:
-            p_hand_1 = mp.landmark[self.i_p_hand[0]][self.i_p_hand[1]]
-            p_hand_2 = mp.landmark[self.i_p_hand_2[0]][self.i_p_hand_2[1]]
+            p_hand_A = mp.landmark[self.i_p_hand_A[0]][self.i_p_hand_A[1]]
+            p_hand_B = mp.landmark[self.i_p_hand_B[0]][self.i_p_hand_B[1]]
             p_hand = numpy.array(
                 [
-                    min(p_hand_1[0], p_hand_2[0])
-                    + (abs(p_hand_1[0] - p_hand_2[0]) / 2),
+                    min(p_hand_A[0], p_hand_B[0])
+                    + (abs(p_hand_A[0] - p_hand_B[0]) / 2),
 
-                    min(p_hand_1[1], p_hand_2[1])
-                    + (abs(p_hand_1[1] - p_hand_2[1]) / 2),
+                    min(p_hand_A[1], p_hand_B[1])
+                    + (abs(p_hand_A[1] - p_hand_B[1]) / 2),
                 ],
                 dtype=int
             )
         else:
             p_hand = numpy.array(
-                numpy.abs(self.i_p_hand) * mp.image_size,
+                numpy.abs(self.i_p_hand_A) * mp.image_size,
                 dtype=int
             )
 
