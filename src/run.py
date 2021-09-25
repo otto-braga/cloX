@@ -141,7 +141,7 @@ def main():
         for clock in clocks:
             clock.en_c = calibrate
             clock.update(mp_parsed)
-            draw_clock(clock, image)
+            # draw_clock(clock, image)
 
         cv2.imshow(window_title, image)
 
