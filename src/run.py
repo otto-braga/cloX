@@ -34,16 +34,17 @@ def main():
     osc_port = project['setup']['osc_port']
 
     for clock in project['clocks']:
+        scale_mode = clock["scale_mode"]
         clocks.append(
             Clock(
                 clock["name"],
                 clock["i_p_clock"],
                 clock["i_p_hand"],
                 clock["scale_mode"],
-                clock["i_p_ref_A"],
-                clock["i_p_ref_B"],
-                clock["i_p_ref_C"],
-                clock["i_p_ref_D"]
+                clock["i_p_ref_A"] if 0 < scale_mode < 3 else [0,0],
+                clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
+                clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
+                clock["i_p_ref_D"] if scale_mode == 2 else [0,0]
             )
         )
 
@@ -145,7 +146,7 @@ def main():
         # -------------
 
         for clock in clocks:
-            clock.en_c = calibrate
+            clock.enable_calibration = calibrate
             clock.update(mp_parsed)
             draw_clock(clock, image)
 

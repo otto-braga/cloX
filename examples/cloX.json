@@ -5,20 +5,16 @@
         "camera_height": 480,
         "camera_fps": 30,
         "mp_min_detect_conf": 0.5,
-        "mp_min_track_conf": 0.5,
+        "mp_min_track_conf": 0.8,
         "osc_ip": "127.0.0.1",
         "osc_port": 4747
     },
     "clocks": [
         {
             "name": "clock_A",
-            "i_p_clock": [0,30,0,29],
-            "i_p_hand": [0,0,0,0],
-            "scale_mode": 3,
-            "i_p_ref_A": [0,12],
-            "i_p_ref_B": [0,24],
-            "i_p_ref_C": [0,23],
-            "i_p_ref_D": [0,24]
+            "i_p_clock": [0,11,0,12],
+            "i_p_hand": [0,20,-1,-1],
+            "scale_mode": 3
         }
     ]
 }
