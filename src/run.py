@@ -38,11 +38,9 @@ def main():
             Clock(
                 clock["name"],
                 clock["p_clock_mode"],
-                clock["i_p_clock_A"],
-                clock["i_p_clock_B"],
+                clock["i_p_clock"],
                 clock["p_hand_mode"],
-                clock["i_p_hand_A"],
-                clock["i_p_hand_B"],
+                clock["i_p_hand"],
                 clock["scale_mode"],
                 clock["i_p_ref_A"],
                 clock["i_p_ref_B"],

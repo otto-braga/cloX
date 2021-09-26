@@ -1,6 +1,6 @@
 {
     "setup": {
-        "camera_id": 0,
+        "camera_id": "http://192.168.2.100:4747/video",
         "camera_width": 640,
         "camera_height": 480,
         "camera_fps": 30,
@@ -13,16 +13,14 @@
         {
             "name": "clock_A",
             "p_clock_mode": 1,
-            "i_p_clock_A": [0,23],
-            "i_p_clock_B": [0,24],
+            "i_p_clock": [0,30,0,29],
             "p_hand_mode": 0,
-            "i_p_hand_A": [0,0],
-            "i_p_hand_B": [0,0],
+            "i_p_hand": [0,0,0,0],
             "scale_mode": 2,
-            "i_p_ref_A": [0,0],
-            "i_p_ref_B": [0,10],
-            "i_p_ref_C": [0,7],
-            "i_p_ref_D": [0,8]
+            "i_p_ref_A": [0,12],
+            "i_p_ref_B": [0,24],
+            "i_p_ref_C": [0,23],
+            "i_p_ref_D": [0,24]
         }
     ]
 }
