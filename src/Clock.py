@@ -1,5 +1,8 @@
 import numpy
 
+from scipy import signal
+from scipy.signal import fir_filter_design
+
 class Clock:
     def __init__(
         self,
@@ -65,8 +68,7 @@ class Clock:
         self.en_c = False
         self.flag_c = False
 
-        self.filter_length = 10
-        self.scale_history = numpy.ones([self.filter_length], dtype=float)
+        self.scale_history = numpy.ones([10], dtype=float)
 
     # Auxiliary methods.
     # ------------------
@@ -128,27 +130,6 @@ class Clock:
             self.p_ref_auto[6] = mp.landmark[0][23]
             self.p_ref_auto[7] = mp.landmark[0][24]
 
-            # self.p_ref_auto[8] = self._midpoint(mp.landmark[0][11], mp.landmark[0][12])
-            # self.p_ref_auto[9] = self._midpoint(mp.landmark[0][23], mp.landmark[0][24])
-
-            # self.p_ref_auto[8] = mp.landmark[0][15]
-            # self.p_ref_auto[9] = mp.landmark[0][19]
-
-            # self.p_ref_auto[10] = mp.landmark[0][16]
-            # self.p_ref_auto[11] = mp.landmark[0][20]
-
-        # if (numpy.all(p_clock > 0) and numpy.all(p_hand > 0)):
-        #     self.p_clock = p_clock
-        #     self.p_hand = p_hand
-
-        #     self.p_ref_A = p_ref_A
-        #     self.p_ref_B = p_ref_B
-        #     self.p_ref_C = p_ref_C
-        #     self.p_ref_D = p_ref_D
-
-        #     self.p_clock_norm = p_clock / mp.image_size
-        #     self.p_hand_norm = p_hand / mp.image_size
-
         self.p_clock_norm = self.p_clock / mp.image_size
         self.p_hand_norm = self.p_hand / mp.image_size
 
@@ -187,7 +168,8 @@ class Clock:
             self.flag_c = True
 
     def _scaling(self):
-        scale = 1
+        scale = 1.0
+
         if self.scale_mode == 0:
             self.r_clock = self.k_r_clock
         elif self.scale_mode == 1:
