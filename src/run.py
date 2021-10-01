@@ -102,15 +102,9 @@ def main():
         image.flags.writeable = False
         mp_results = mp_holistic.process(image)
         image.flags.writeable = True
+        draw_mediapipe_results(mp_results, image)
 
         mp_parsed = MediapipeParsed(mp_results, (image.shape[1], image.shape[0]))
-
-        mediapipe.solutions.drawing_utils.draw_landmarks(
-            image,
-            mp_results.pose_landmarks,
-            mediapipe.solutions.pose.POSE_CONNECTIONS,
-            landmark_drawing_spec=mediapipe.solutions.drawing_styles.get_default_pose_landmarks_style()
-        )
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -184,6 +178,33 @@ def draw_clock(clock, image):
     cv2.circle(image, clock.p_hand, 4, color, -1)
     cv2.line(image, clock.p_clock, clock.p_hand, color, 2)
     cv2.circle(image, clock.p_clock, 4, color, -1)
+
+def draw_mediapipe_results(mp_results, image):
+    mediapipe.solutions.drawing_utils.draw_landmarks(
+        image,
+        mp_results.pose_landmarks,
+        mediapipe.solutions.pose.POSE_CONNECTIONS,
+        landmark_drawing_spec = (
+            mediapipe.solutions.drawing_styles.get_default_pose_landmarks_style()
+        )
+    )
+    mediapipe.solutions.drawing_utils.draw_landmarks(
+        image,
+        mp_results.left_hand_landmarks,
+        mediapipe.solutions.hands.HAND_CONNECTIONS,
+        landmark_drawing_spec = (
+            mediapipe.solutions.drawing_styles.get_default_hand_landmarks_style()
+        )
+    )
+    mediapipe.solutions.drawing_utils.draw_landmarks(
+        image,
+        mp_results.right_hand_landmarks,
+        mediapipe.solutions.hands.HAND_CONNECTIONS,
+        landmark_drawing_spec = (
+            mediapipe.solutions.drawing_styles.get_default_hand_landmarks_style()
+        )
+    )
+
 
 if __name__ == '__main__':
     main()
