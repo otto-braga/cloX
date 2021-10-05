@@ -1,8 +1,5 @@
 import numpy
 
-from scipy import signal
-from scipy.signal import fir_filter_design
-
 class Clock:
     def __init__(
         self,

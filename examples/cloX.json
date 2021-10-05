@@ -1,11 +1,11 @@
 {
     "setup": {
-        "camera_id": "http://192.168.2.100:4747/video",
+        "camera_id": "http://192.168.42.129:4747/video",
         "camera_width": 640,
         "camera_height": 480,
-        "camera_fps": 30,
+        "camera_fps": 60,
         "mp_min_detect_conf": 0.5,
-        "mp_min_track_conf": 0.8,
+        "mp_min_track_conf": 0.6,
         "osc_ip": "127.0.0.1",
         "osc_port": 4747
     },

@@ -4,9 +4,12 @@ import cv2
 import mediapipe
 from time import time
 
+import numpy
+
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
 from Clock import Clock
+from DrawnGesture import GestureCatcher
 
 import osc
 
@@ -47,6 +50,8 @@ def main():
                 clock["i_p_ref_D"] if scale_mode == 2 else [0,0]
             )
         )
+
+    gesture_catcher = GestureCatcher(camera_height, camera_width)
 
     # initialization
     # --------------
@@ -102,7 +107,6 @@ def main():
         image.flags.writeable = False
         mp_results = mp_holistic.process(image)
         image.flags.writeable = True
-        draw_mediapipe_results(mp_results, image)
 
         mp_parsed = MediapipeParsed(mp_results, (image.shape[1], image.shape[0]))
 
@@ -142,7 +146,24 @@ def main():
         for clock in clocks:
             clock.enable_calibration = calibrate
             clock.update(mp_parsed)
+
+        gesture_catcher.update(mp_parsed)
+
+        # draw image
+        # ----------
+
+        image = numpy.zeros(image.shape, dtype=numpy.uint8)
+
+        draw_mediapipe_results(mp_results, image)
+
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+
+        for clock in clocks:
+            print_clock(clock)
             draw_clock(clock, image)
+
+        image = gesture_catcher.draw(image)
 
         cv2.imshow(window_title, image)
 
@@ -165,7 +186,7 @@ def main():
     video.stop = True
     cv2.destroyAllWindows()
 
-def draw_clock(clock, image):
+def print_clock(clock):
     print(
         clock.name, 
         " | p_hand polar (", clock.r_hand, ", ", clock.phi_r_hand, ")", 
@@ -173,11 +194,16 @@ def draw_clock(clock, image):
         " | p_hand ", clock.p_hand,
         " | scale ", clock.scale
     )
+
+def draw_clock(clock, image):
     color = (0,0,128)
     cv2.circle(image, clock.p_clock, int(clock.r_clock), color, 1)
     cv2.circle(image, clock.p_hand, 4, color, -1)
     cv2.line(image, clock.p_clock, clock.p_hand, color, 2)
     cv2.circle(image, clock.p_clock, 4, color, -1)
+
+def draw_gesture(clock, image):
+    pass
 
 def draw_mediapipe_results(mp_results, image):
     mediapipe.solutions.drawing_utils.draw_landmarks(
