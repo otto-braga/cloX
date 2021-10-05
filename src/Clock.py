@@ -15,7 +15,9 @@ class Clock:
         i_p_ref_A = (0,0),
         i_p_ref_B = (0,0),
         i_p_ref_C = (0,0),
-        i_p_ref_D = (0,0)
+        i_p_ref_D = (0,0),
+
+        clipped = True
     ):
         self.name = name
 
@@ -67,6 +69,8 @@ class Clock:
 
         self.ratio_A = 1.0
         self.ratio_B = 1.0
+
+        self.clipped = clipped
 
     # Auxiliary methods.
     # ------------------
@@ -200,6 +204,12 @@ class Clock:
         self.phi_r_hand = -self.phi_r_hand + 90
         if self.phi_r_hand < 0: self.phi_r_hand = self.phi_r_hand + 360
         self.phi_r_hand = self.phi_r_hand / 360
+
+        if self.clipped:
+            self.r_hand =  numpy.clip(self.r_hand, 0, 1)
+            self.phi_r_hand =  numpy.clip(self.phi_r_hand, 0, 1)
+            self.x_r_hand =  numpy.clip(self.x_r_hand, 0, 1)
+            self.y_r_hand =  numpy.clip(self.y_r_hand, 0, 1)
 
     def update(self, mp):
         self._setup(mp)
