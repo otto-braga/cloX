@@ -67,6 +67,8 @@ def main():
         min_tracking_confidence = min_track_conf
     )
 
+    mp_parsed = MediapipeParsed([camera_width, camera_height])
+
     osc_client = osc.client_setup(osc_ip, osc_port)
 
     # OpenCV window
@@ -105,7 +107,7 @@ def main():
         mp_results = mp_holistic.process(image)
         image.flags.writeable = True
 
-        mp_parsed = MediapipeParsed(mp_results, (image.shape[1], image.shape[0]))
+        mp_parsed.update(mp_results)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -149,7 +151,7 @@ def main():
 
         image = numpy.zeros(image.shape, dtype=numpy.uint8)
 
-        draw_mediapipe_results(mp_results, image)
+        draw_mediapipe_results(mp_parsed.solution, image)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGBA)
@@ -205,7 +207,7 @@ def draw_clock(clock, image):
 def draw_mediapipe_results(mp_results, image):
     mediapipe.solutions.drawing_utils.draw_landmarks(
         image,
-        mp_results.pose_landmarks,
+        mp_results[0],
         mediapipe.solutions.pose.POSE_CONNECTIONS,
         landmark_drawing_spec = (
             mediapipe.solutions.drawing_styles.get_default_pose_landmarks_style()
@@ -213,7 +215,7 @@ def draw_mediapipe_results(mp_results, image):
     )
     mediapipe.solutions.drawing_utils.draw_landmarks(
         image,
-        mp_results.left_hand_landmarks,
+        mp_results[1],
         mediapipe.solutions.hands.HAND_CONNECTIONS,
         landmark_drawing_spec = (
             mediapipe.solutions.drawing_styles.get_default_hand_landmarks_style()
@@ -221,7 +223,7 @@ def draw_mediapipe_results(mp_results, image):
     )
     mediapipe.solutions.drawing_utils.draw_landmarks(
         image,
-        mp_results.right_hand_landmarks,
+        mp_results[2],
         mediapipe.solutions.hands.HAND_CONNECTIONS,
         landmark_drawing_spec = (
             mediapipe.solutions.drawing_styles.get_default_hand_landmarks_style()

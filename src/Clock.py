@@ -1,6 +1,7 @@
 import numpy
 import time
 import cv2
+from scipy.signal import savgol_filter
 
 class Clock:
     def __init__(
@@ -265,7 +266,7 @@ class GestureCatcher:
 
     def catch(self, tracked, scale):
         self.position[0] = self.tracked
-        self.tracked = tracked
+        self.tracked = numpy.clip(tracked, [0,0], self.image_size)
         self.position[1] = self.tracked
 
         self.position_abs = numpy.array(self.position, dtype=int)
@@ -292,11 +293,13 @@ class GestureCatcher:
             self.speed_history[-1] = self.speed_magnitude
             self.speed_magnitude = numpy.mean(self.speed_history)
             self.gesture_points = numpy.append(self.gesture_points, self.position_abs[1])
+            if self.gesture_points.shape[0] > 10:
+                self.gesture_points = savgol_filter(self.gesture_points, 5, 1, axis=0)
             self.gesture_image_update()
 
         if numpy.mean(self.speed_history) < self.speed_limit:
             self.is_catching = False
-            print(self.gesture_points)
+            # print(self.gesture_points)
     
     def scale(self, scale):
         self.distance_min = self.distance_min * scale
