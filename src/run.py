@@ -51,8 +51,6 @@ def main():
             )
         )
 
-    gesture_catcher = GestureCatcher(camera_height, camera_width)
-
     # initialization
     # --------------
 
@@ -147,8 +145,6 @@ def main():
             clock.enable_calibration = calibrate
             clock.update(mp_parsed)
 
-        gesture_catcher.update(mp_parsed)
-
         # draw image
         # ----------
 
@@ -157,13 +153,11 @@ def main():
         draw_mediapipe_results(mp_results, image)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
-        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGB)
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGBA)
 
         for clock in clocks:
             print_clock(clock)
-            draw_clock(clock, image)
-
-        image = gesture_catcher.draw(image)
+            image = draw_clock(clock, image)
 
         cv2.imshow(window_title, image)
 
@@ -192,7 +186,8 @@ def print_clock(clock):
         " | p_hand polar (", clock.r_hand, ", ", clock.phi_r_hand, ")", 
         " | p_clock ", clock.p_clock,
         " | p_hand ", clock.p_hand,
-        " | scale ", clock.scale
+        " | scale ", clock.scale,
+        " | gesture catcher ", clock.is_gesture_catcher
     )
 
 def draw_clock(clock, image):
@@ -202,8 +197,11 @@ def draw_clock(clock, image):
     cv2.line(image, clock.p_clock, clock.p_hand, color, 2)
     cv2.circle(image, clock.p_clock, 4, color, -1)
 
-def draw_gesture(clock, image):
-    pass
+    if clock.is_gesture_catcher:
+        added_image = cv2.addWeighted(image, 1, clock.gesture_catcher.gesture_image, 1, 0)
+        image = added_image
+    
+    return image
 
 def draw_mediapipe_results(mp_results, image):
     mediapipe.solutions.drawing_utils.draw_landmarks(

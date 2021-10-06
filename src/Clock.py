@@ -1,4 +1,6 @@
 import numpy
+import time
+import cv2
 
 class Clock:
     def __init__(
@@ -68,6 +70,9 @@ class Clock:
         self.ratio_B = 1.0
 
         self.clipped = clipped
+
+        self.is_gesture_catcher = True
+        self.gesture_catcher = None
 
     # Auxiliary methods.
     # ------------------
@@ -215,3 +220,102 @@ class Clock:
         if self.is_calibrated:
             self._scaling()
             self._normalization()
+    
+        if self.is_gesture_catcher and not self.gesture_catcher:
+            self.gesture_catcher = GestureCatcher(mp)
+        self.gesture_catcher.update(self.p_hand, self.scale)
+
+# ------------------------------------------------------------------------------
+
+class GestureCatcher:
+    def __init__(
+        self,
+        mp
+    ):
+        self.image_size = mp.image_size
+
+        self.speed_limit = 10
+        self.speed_history_size = 5
+        self.distance_min = 0.2
+
+        self.tracked = numpy.zeros([2], dtype=float)
+
+        self.position = numpy.full( [2, 2], numpy.zeros([2], dtype=int))
+        self.position_abs = numpy.full( [2, 2], numpy.zeros([2], dtype=int))
+        self.distance = 0.0
+
+        self.instant = numpy.full([2], time.monotonic_ns(), dtype = int)
+
+        self.speed = [0.0,0.0]
+        self.speed_magnitude = 0.0
+        self.speed_history = numpy.zeros([self.speed_history_size], dtype=float)
+
+        self.is_catching = False
+
+        self.gesture_image = numpy.full(
+            [self.image_size[1], self.image_size[0], 4],
+            numpy.zeros([4], dtype=numpy.uint8)
+        )
+
+        self.gesture_points = numpy.array([], dtype=object)
+
+    def update(self, tracked, scale):
+        self.catch(tracked, scale)
+        if not self.is_catching: self.detect()
+
+    def catch(self, tracked, scale):
+        self.position[0] = self.tracked
+        self.tracked = tracked
+        self.position[1] = self.tracked
+
+        self.position_abs = numpy.array(self.position, dtype=int)
+        self.position = self.position / self.image_size
+
+        self.instant[0] = self.instant[1]
+        self.instant[1] = time.monotonic_ns()
+
+        self.distance = numpy.linalg.norm(self.position[1] - self.position[0])
+
+        self.speed = abs(self.position[1] - self.position[0]) / (self.instant[1] - self.instant[0])
+        self.speed_magnitude = numpy.linalg.norm(self.speed) * (10 ** 10)
+
+        self.scale(scale)
+
+        if self.speed_magnitude > self.speed_limit and self.is_catching == False and self.distance > self.distance_min:
+            self.is_catching = True
+            self.gesture_points = numpy.array([], dtype=object)
+            self.speed_history = numpy.full([self.speed_history_size], self.speed_limit,dtype=float)
+            self.gesture_image_reset()
+        
+        if self.is_catching:
+            self.speed_history[:-1] = self.speed_history[1:]
+            self.speed_history[-1] = self.speed_magnitude
+            self.speed_magnitude = numpy.mean(self.speed_history)
+            self.gesture_points = numpy.append(self.gesture_points, self.position_abs[1])
+            self.gesture_image_update()
+
+        if numpy.mean(self.speed_history) < self.speed_limit:
+            self.is_catching = False
+            print(self.gesture_points)
+    
+    def scale(self, scale):
+        self.distance_min = self.distance_min * scale
+        self.speed_magnitude = self.speed_magnitude / scale
+    
+    def gesture_image_reset(self):
+        self.gesture_image = numpy.full(
+            [self.image_size[1], self.image_size[0], 4],
+            numpy.zeros([4], dtype=numpy.uint8)
+        )
+        
+    def gesture_image_update(self):
+        color_intensity = self.speed_magnitude - self.speed_limit
+        color_intensity = color_intensity / (3 * self.speed_limit)
+        color_intensity = int(color_intensity * 255)
+
+        cv2.line(self.gesture_image, self.position_abs[0], self.position_abs[1], (255, 0, color_intensity), 4)
+
+    def detect(self):
+        image = self.gesture_image
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+        cv2.imwrite("gesture/gesture.png", image)
