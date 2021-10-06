@@ -9,7 +9,6 @@ import numpy
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
 from Clock import Clock
-from DrawnGesture import GestureCatcher
 
 import osc
 
