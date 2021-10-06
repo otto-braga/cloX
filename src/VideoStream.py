@@ -1,5 +1,6 @@
-import cv2
 from threading import Thread
+
+import cv2
 
 class VideoStream:
     def __init__(self, source, width=640, height=480, fps=30):

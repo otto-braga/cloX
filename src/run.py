@@ -1,10 +1,11 @@
 import json
 import sys
-import cv2
-import mediapipe
 from time import time
 
 import numpy
+import cv2
+import mediapipe
+import keras
 
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
@@ -37,18 +38,19 @@ def main():
 
     for clock in project['clocks']:
         scale_mode = clock["scale_mode"]
-        clocks.append(
-            Clock(
-                clock["name"],
-                clock["i_p_clock"],
-                clock["i_p_hand"],
-                clock["scale_mode"],
-                clock["i_p_ref_A"] if 0 < scale_mode < 3 else [0,0],
-                clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
-                clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
-                clock["i_p_ref_D"] if scale_mode == 2 else [0,0]
-            )
+        clock_new = Clock(
+            clock["name"],
+            clock["i_p_clock"],
+            clock["i_p_hand"],
+            clock["scale_mode"],
+            clock["i_p_ref_A"] if 0 < scale_mode < 3 else [0,0],
+            clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
+            clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
+            clock["i_p_ref_D"] if scale_mode == 2 else [0,0]
         )
+        if clock_new.is_gesture_catcher:
+            clock_new.gesture_catcher_model = keras.models.load_model('gesture/model.h5')
+        clocks.append(clock_new)
 
     # initialization
     # --------------
@@ -183,13 +185,17 @@ def main():
 
 def print_clock(clock):
     print(
-        clock.name, 
-        " | p_hand polar (", clock.r_hand, ", ", clock.phi_r_hand, ")", 
-        " | p_clock ", clock.p_clock,
-        " | p_hand ", clock.p_hand,
-        " | scale ", clock.scale,
-        " | gesture catcher ", clock.is_gesture_catcher
+        clock.name, '\n',
+        "\t| r_hand polar", [clock.r_hand, clock.phi_r_hand], '\n',
+        "\t| r_hand cartesian", [clock.x_r_hand, clock.y_r_hand], '\n',
+        "\t| p_clock ", clock.p_clock, " | p_hand ", clock.p_hand, '\n',
+        "\t| scale ", clock.scale
     )
+    if clock.is_gesture_catcher:
+        print(
+            "\t| gesture_classification ", clock.gesture_classification, " | gesture_classification_accuracy ", clock.gesture_classification_accuracy
+        )
+    
 
 def draw_clock(clock, image):
     color = (0,0,128)
@@ -199,7 +205,7 @@ def draw_clock(clock, image):
     cv2.circle(image, clock.p_clock, 4, color, -1)
 
     if clock.is_gesture_catcher:
-        added_image = cv2.addWeighted(image, 1, clock.gesture_catcher.gesture_image, 1, 0)
+        added_image = cv2.addWeighted(image, 1, clock.gesture_catcher.gesture_image, 0.5, 0)
         image = added_image
     
     return image

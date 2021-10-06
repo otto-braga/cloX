@@ -1,7 +1,10 @@
-import numpy
 import time
+
+import numpy
 import cv2
-from scipy.signal import savgol_filter
+
+
+
 
 class Clock:
     def __init__(
@@ -74,6 +77,9 @@ class Clock:
 
         self.is_gesture_catcher = True
         self.gesture_catcher = None
+        self.gesture_catcher_model = None
+        self.gesture_classification = None
+        self.gesture_classification_accuracy = None
 
     # Auxiliary methods.
     # ------------------
@@ -222,22 +228,26 @@ class Clock:
             self._scaling()
             self._normalization()
     
-        if self.is_gesture_catcher and not self.gesture_catcher:
-            self.gesture_catcher = GestureCatcher(mp)
-        self.gesture_catcher.update(self.p_hand, self.scale)
+        if self.is_gesture_catcher:
+            if self.gesture_catcher == None: self.gesture_catcher = GestureCatcher(self, mp)
+            self.gesture_catcher.update(self)
 
-# ------------------------------------------------------------------------------
+
+
 
 class GestureCatcher:
     def __init__(
         self,
+        clock,
         mp
     ):
+        self.clock = clock
         self.image_size = mp.image_size
 
-        self.speed_limit = 10
+        self.speed_limit = 8
         self.speed_history_size = 5
         self.distance_min = 0.2
+        self.line_width = 30
 
         self.tracked = numpy.zeros([2], dtype=float)
 
@@ -258,15 +268,11 @@ class GestureCatcher:
             numpy.zeros([4], dtype=numpy.uint8)
         )
 
-        self.gesture_points = numpy.array([], dtype=object)
+        self.gesture_points = numpy.array([])
 
-    def update(self, tracked, scale):
-        self.catch(tracked, scale)
-        if not self.is_catching: self.detect()
-
-    def catch(self, tracked, scale):
+    def track(self):
         self.position[0] = self.tracked
-        self.tracked = numpy.clip(tracked, [0,0], self.image_size)
+        self.tracked = numpy.clip(self.clock.p_hand, [0,0], self.image_size)
         self.position[1] = self.tracked
 
         self.position_abs = numpy.array(self.position, dtype=int)
@@ -280,11 +286,14 @@ class GestureCatcher:
         self.speed = abs(self.position[1] - self.position[0]) / (self.instant[1] - self.instant[0])
         self.speed_magnitude = numpy.linalg.norm(self.speed) * (10 ** 10)
 
-        self.scale(scale)
+    def scale(self):
+        self.distance_min = self.distance_min * self.clock.scale
+        self.speed_magnitude = self.speed_magnitude / self.clock.scale
 
+    def catch(self):
         if self.speed_magnitude > self.speed_limit and self.is_catching == False and self.distance > self.distance_min:
             self.is_catching = True
-            self.gesture_points = numpy.array([], dtype=object)
+            self.gesture_points = numpy.array([])
             self.speed_history = numpy.full([self.speed_history_size], self.speed_limit,dtype=float)
             self.gesture_image_reset()
         
@@ -292,18 +301,14 @@ class GestureCatcher:
             self.speed_history[:-1] = self.speed_history[1:]
             self.speed_history[-1] = self.speed_magnitude
             self.speed_magnitude = numpy.mean(self.speed_history)
-            self.gesture_points = numpy.append(self.gesture_points, self.position_abs[1])
-            if self.gesture_points.shape[0] > 10:
-                self.gesture_points = savgol_filter(self.gesture_points, 5, 1, axis=0)
+            if len(self.gesture_points) < 1:
+                self.gesture_points = numpy.array([self.position_abs[0], self.position_abs[1]])
+            else:
+                self.gesture_points = numpy.concatenate((self.gesture_points, [self.position_abs[1]]), axis=0)
             self.gesture_image_update()
 
         if numpy.mean(self.speed_history) < self.speed_limit:
             self.is_catching = False
-            # print(self.gesture_points)
-    
-    def scale(self, scale):
-        self.distance_min = self.distance_min * scale
-        self.speed_magnitude = self.speed_magnitude / scale
     
     def gesture_image_reset(self):
         self.gesture_image = numpy.full(
@@ -316,9 +321,49 @@ class GestureCatcher:
         color_intensity = color_intensity / (3 * self.speed_limit)
         color_intensity = int(color_intensity * 255)
 
-        cv2.line(self.gesture_image, self.position_abs[0], self.position_abs[1], (255, 0, color_intensity), 4)
+        # line_width = self.speed_magnitude - self.speed_limit
+        # line_width = line_width / (3 * self.speed_limit)
+        # line_width = int(line_width * 40)
+        # line_width = numpy.clip(line_width, 4, 40)
 
-    def detect(self):
+        cv2.line(self.gesture_image, self.position_abs[0], self.position_abs[1], (255, 0, color_intensity), self.line_width)
+
+    def classify(self):
+        save_img_files = False
+
         image = self.gesture_image
         image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
-        cv2.imwrite("gesture/gesture.png", image)
+        if save_img_files: cv2.imwrite("gesture/gesture-00.png", image)
+
+        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY).astype('uint8')
+        _, image = cv2.threshold(image, 1, 255, cv2.THRESH_BINARY)
+        image = ~image
+        rect = [0,0,0,0]
+        border = int(self.line_width / 2)
+        rect[0] = numpy.clip(numpy.min(self.gesture_points[:, 0]) - border, 0, self.image_size[0] - 1)
+        rect[1] = numpy.clip(numpy.max(self.gesture_points[:, 0]) + border, 0, self.image_size[0] - 1)
+        rect[2] = numpy.clip(numpy.min(self.gesture_points[:, 1]) - border, 0, self.image_size[1] - 1)
+        rect[3] = numpy.clip(numpy.max(self.gesture_points[:, 1]) + border, 0, self.image_size[1] - 1)
+        image = image[rect[2]:rect[3], rect[0]:rect[1]]
+        if save_img_files: cv2.imwrite("gesture/gesture-01-cropped.png", image)
+
+        image = cv2.resize(image, (28,28))
+        if save_img_files: cv2.imwrite("gesture/gesture-02-resized.png", image)
+
+        image = image / 255
+        if save_img_files: cv2.imwrite("gesture/gesture-03-normalized.png", image)
+
+        image = image.reshape(1,28,28,1)
+
+        if self.clock.gesture_catcher_model != None:
+            res = self.clock.gesture_catcher_model.predict([image])[0]
+
+            self.clock.gesture_classification = numpy.argmax(res)
+            self.clock.gesture_classification_accuracy = max(res)
+
+    def update(self, clock):
+        self.clock = clock
+        self.track()
+        self.scale()
+        self.catch()
+        if not self.is_catching and len(self.gesture_points) > 1: self.classify()

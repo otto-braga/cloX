@@ -1,6 +1,6 @@
 {
     "setup": {
-        "camera_id": 0,
+        "camera_id": "http://192.168.42.129:4747/video",
         "camera_width": 640,
         "camera_height": 480,
         "camera_fps": 60,
@@ -13,7 +13,7 @@
         {
             "name": "clock_A",
             "i_p_clock": [0,11,0,12],
-            "i_p_hand": [0,20,-1,-1],
+            "i_p_hand": [0,19,-1,-1],
             "scale_mode": 3
         }
     ]
