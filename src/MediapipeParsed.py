@@ -17,7 +17,12 @@ class MediapipeParsed:
 
         self.solution = []
 
-    def update(self, results, skip_none=False):
+    def update(
+        self,
+        results,
+        pose_always_in_frame=False,
+        skip_when_none=False
+    ):
         solution = [
             results.pose_landmarks,
             results.right_hand_landmarks,
@@ -31,11 +36,24 @@ class MediapipeParsed:
             if solution[i] != None:
                 self.solution[i] = solution[i]
                 for j in range(len(self.landmark[i])):
-                    if solution[i].landmark[j].visibility > 0.5:
-                        self.landmark[i][j][0] = solution[i].landmark[j].x * self.image_size[0]
-                        self.landmark[i][j][1] = solution[i].landmark[j].y * self.image_size[1]
-                        #self.landmark[i][j][2] = solution[i].landmark[j].z * image_size[1]
-            elif skip_none == False:
+                    self.landmark[i][j][0] = (
+                        solution[i].landmark[j].x * self.image_size[0]
+                    )
+                    self.landmark[i][j][1] = (
+                        solution[i].landmark[j].y * self.image_size[1]
+                    )
+                    # self.landmark[i][j][2] = (
+                    #     solution[i].landmark[j].z * self.image_size[1]
+                    # )
+
+                    if pose_always_in_frame and i == 0:
+                        self.landmark[i][j] = numpy.clip(
+                            self.landmark[i][j], [0,0], self.image_size
+                        )
+
+            elif not skip_when_none:
                 self.solution[i] = solution[i]
                 for j in range(len(self.landmark[i])):
-                    self.landmark[i][j] = numpy.full([2], self.initial_value, dtype=int)
+                    self.landmark[i][j] = numpy.full(
+                        [2], self.initial_value, dtype=int
+                    )

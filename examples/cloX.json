@@ -14,7 +14,14 @@
             "name": "clock_A",
             "i_p_clock": [0,11,0,12],
             "i_p_hand": [0,19,-1,-1],
-            "scale_mode": 3
+            "scale_mode": 3,
+            "i_p_ref_A": [0,0],
+            "i_p_ref_B": [0,0],
+            "i_p_ref_C": [0,0],
+            "i_p_ref_D": [0,0],
+            "is_gesture_catcher": 1,
+            "is_gesture_classifier": 0,
+            "is_clipped": 1
         }
     ]
 }

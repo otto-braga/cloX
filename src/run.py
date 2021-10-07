@@ -39,17 +39,22 @@ def main():
     for clock in project['clocks']:
         scale_mode = clock["scale_mode"]
         clock_new = Clock(
-            clock["name"],
-            clock["i_p_clock"],
-            clock["i_p_hand"],
-            clock["scale_mode"],
-            clock["i_p_ref_A"] if 0 < scale_mode < 3 else [0,0],
-            clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
-            clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
-            clock["i_p_ref_D"] if scale_mode == 2 else [0,0]
+            name = clock["name"],
+            i_p_clock = clock["i_p_clock"],
+            i_p_hand = clock["i_p_hand"],
+            scale_mode = clock["scale_mode"],
+            i_p_ref_A = clock["i_p_ref_A"] if 0 < scale_mode < 3 else [0,0],
+            i_p_ref_B = clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
+            i_p_ref_C = clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
+            i_p_ref_D = clock["i_p_ref_D"] if scale_mode == 2 else [0,0],
+            is_gesture_catcher = bool(clock["is_gesture_catcher"]),
+            is_gesture_classifier = bool(clock["is_gesture_classifier"]),
+            is_clipped = bool(clock["is_clipped"])
         )
         if clock_new.is_gesture_catcher:
-            clock_new.gesture_catcher_model = keras.models.load_model('gesture/model.h5')
+            clock_new.gesture_catcher_model = keras.models.load_model(
+                'gesture/model.h5'
+            )
         clocks.append(clock_new)
 
     # initialization
@@ -84,7 +89,9 @@ def main():
     cv2.namedWindow(window_title)
     cv2.createTrackbar('camera gain', window_title, 0, 8, (lambda a: None))
     cv2.createTrackbar('calibrate', window_title, 0, 1, (lambda a: None))
-    cv2.createTrackbar('calibration delay (s)', window_title, 0, 10, (lambda a: None))
+    cv2.createTrackbar(
+        'calibration delay (s)', window_title, 0, 10, (lambda a: None)
+    )
     cv2.createTrackbar('quit', window_title, 0, 1, (lambda a: None))
 
     calibration_start_time = None
@@ -109,7 +116,7 @@ def main():
         mp_results = mp_holistic.process(image)
         image.flags.writeable = True
 
-        mp_parsed.update(mp_results)
+        mp_parsed.update(mp_results, True, False)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -154,6 +161,7 @@ def main():
         image = numpy.zeros(image.shape, dtype=numpy.uint8)
 
         draw_mediapipe_results(mp_parsed.solution, image)
+        # draw_mediapipe_parsed_landmarks(mp_parsed, image)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGBA)
@@ -173,7 +181,10 @@ def main():
         # OpenCV window quitting manager
         # ------------------------------
 
-        if cv2.waitKey(5) == 27 or cv2.getTrackbarPos('quit', window_title) == 1:
+        if (
+            cv2.waitKey(5) == 27
+            or cv2.getTrackbarPos('quit', window_title) == 1
+        ):
             break
 
     # quit
@@ -188,12 +199,18 @@ def print_clock(clock):
         clock.name, '\n',
         "\t| r_hand polar", [clock.r_hand, clock.phi_r_hand], '\n',
         "\t| r_hand cartesian", [clock.x_r_hand, clock.y_r_hand], '\n',
-        "\t| p_clock ", clock.p_clock, " | p_hand ", clock.p_hand, '\n',
-        "\t| scale ", clock.scale
+        "\t| direction", clock.direction, '\n',
+        "\t| speed", clock.speed_magnitude, '\n',
+        "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
+        "\t| scale", clock.scale
     )
     if clock.is_gesture_catcher:
         print(
-            "\t| gesture_classification ", clock.gesture_classification, " | gesture_classification_accuracy ", clock.gesture_classification_accuracy
+            "\t| gesture_classification [class, acc]",
+            [
+                clock.gesture_classification,
+                clock.gesture_classification_accuracy
+            ]
         )
     
 
@@ -205,37 +222,44 @@ def draw_clock(clock, image):
     cv2.circle(image, clock.p_clock, 4, color, -1)
 
     if clock.is_gesture_catcher:
-        added_image = cv2.addWeighted(image, 1, clock.gesture_catcher.gesture_image, 0.5, 0)
+        added_image = cv2.addWeighted(
+            image, 1, clock.gesture_catcher.gesture_image, 0.5, 0
+        )
         image = added_image
     
     return image
 
 def draw_mediapipe_results(mp_results, image):
-    mediapipe.solutions.drawing_utils.draw_landmarks(
+    mp_solutions = mediapipe.solutions
+    mp_solutions.drawing_utils.draw_landmarks(
         image,
         mp_results[0],
-        mediapipe.solutions.pose.POSE_CONNECTIONS,
+        mp_solutions.pose.POSE_CONNECTIONS,
         landmark_drawing_spec = (
-            mediapipe.solutions.drawing_styles.get_default_pose_landmarks_style()
+            mp_solutions.drawing_styles.get_default_pose_landmarks_style()
         )
     )
-    mediapipe.solutions.drawing_utils.draw_landmarks(
+    mp_solutions.drawing_utils.draw_landmarks(
         image,
         mp_results[1],
-        mediapipe.solutions.hands.HAND_CONNECTIONS,
+        mp_solutions.hands.HAND_CONNECTIONS,
         landmark_drawing_spec = (
-            mediapipe.solutions.drawing_styles.get_default_hand_landmarks_style()
+            mp_solutions.drawing_styles.get_default_hand_landmarks_style()
         )
     )
-    mediapipe.solutions.drawing_utils.draw_landmarks(
+    mp_solutions.drawing_utils.draw_landmarks(
         image,
         mp_results[2],
-        mediapipe.solutions.hands.HAND_CONNECTIONS,
+        mp_solutions.hands.HAND_CONNECTIONS,
         landmark_drawing_spec = (
-            mediapipe.solutions.drawing_styles.get_default_hand_landmarks_style()
+            mp_solutions.drawing_styles.get_default_hand_landmarks_style()
         )
     )
 
+def draw_mediapipe_parsed_landmarks(mp_parsed, image):
+    for i in range(len(mp_parsed.landmark)):
+        for j in range(len(mp_parsed.landmark[i])):
+            cv2.circle(image, mp_parsed.landmark[i][j], 4, (255,255,255))
 
 if __name__ == '__main__':
     main()

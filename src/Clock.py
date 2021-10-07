@@ -20,7 +20,10 @@ class Clock:
         i_p_ref_C = (0,0),
         i_p_ref_D = (0,0),
 
-        clipped = True
+        is_gesture_catcher = True,
+        is_gesture_classifier = False,
+
+        is_clipped = True
     ):
         self.name = name
 
@@ -70,16 +73,27 @@ class Clock:
         self.scale_mode = scale_mode
         self.scale_history = numpy.ones([10], dtype=float)
 
-        self.ratio_A = 1.0
-        self.ratio_B = 1.0
+        self.scale_ratio_A = 1.0
+        self.scale_ratio_B = 1.0
 
-        self.clipped = clipped
+        self.speed_tracked_point = numpy.zeros([2], dtype=float)
+        self.position_history = numpy.full([2, 2], numpy.zeros([2], dtype=int))
+        self.position_abs_history = numpy.full([2, 2], numpy.zeros([2], dtype=int))
+        self.direction = numpy.zeros([2], dtype=float)
+        self.instant = numpy.full([2], time.monotonic_ns(), dtype = int)
+        self.speed = [0.0,0.0]
+        self.speed_magnitude = 0.0
 
-        self.is_gesture_catcher = True
+        self.is_gesture_catcher = is_gesture_catcher
+        self.is_gesture_classifier = (
+            is_gesture_classifier * is_gesture_catcher
+        )
         self.gesture_catcher = None
         self.gesture_catcher_model = None
         self.gesture_classification = None
         self.gesture_classification_accuracy = None
+
+        self.is_clipped = is_clipped
 
     # Auxiliary methods.
     # ------------------
@@ -87,8 +101,14 @@ class Clock:
     def _midpoint(self, point_A, point_B):
         return numpy.array(
             [
-                min(point_A[0], point_B[0]) + (abs(point_A[0] - point_B[0]) / 2),
-                min(point_A[1], point_B[1]) + (abs(point_A[1] - point_B[1]) / 2),
+                (
+                    min(point_A[0], point_B[0])
+                    + (abs(point_A[0] - point_B[0]) / 2)
+                ),
+                (
+                    min(point_A[1], point_B[1])
+                    + (abs(point_A[1] - point_B[1]) / 2)
+                ),
             ],
             dtype=int
         )
@@ -119,25 +139,45 @@ class Clock:
         self.p_hand = self._initialize_point(self.i_p_hand, mp)
 
         if self.scale_mode == 1:
-            self.p_ref_list[0] = mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
-            self.p_ref_list[1] = mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+            self.p_ref_list[0] = (
+                mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
+            )
+            self.p_ref_list[1] = (
+                mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+            )
 
         elif self.scale_mode == 2:
-            self.p_ref_list[0] = mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
-            self.p_ref_list[1] = mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+            self.p_ref_list[0] = (
+                mp.landmark[self.i_p_ref_A[0]][self.i_p_ref_A[1]]
+            )
+            self.p_ref_list[1] = (
+                mp.landmark[self.i_p_ref_B[0]][self.i_p_ref_B[1]]
+            )
 
-            self.p_ref_list[2] = mp.landmark[self.i_p_ref_C[0]][self.i_p_ref_C[1]]
-            self.p_ref_list[3] = mp.landmark[self.i_p_ref_D[0]][self.i_p_ref_D[1]]
+            self.p_ref_list[2] = (
+                mp.landmark[self.i_p_ref_C[0]][self.i_p_ref_C[1]]
+            )
+            self.p_ref_list[3] = (
+                mp.landmark[self.i_p_ref_D[0]][self.i_p_ref_D[1]]
+            )
 
         elif self.scale_mode == 3:
-            self.p_ref_list[0] = self._midpoint(mp.landmark[0][3], mp.landmark[0][6])
-            self.p_ref_list[1] = self._midpoint(mp.landmark[0][9], mp.landmark[0][10])
+            self.p_ref_list[1] = (
+                self._midpoint(mp.landmark[0][9], mp.landmark[0][10])
+            )
+            self.p_ref_list[0] = (
+                self._midpoint(mp.landmark[0][3], mp.landmark[0][6])
+            )
 
             self.p_ref_list[2] = mp.landmark[0][7]
             self.p_ref_list[3] = mp.landmark[0][8]
 
-            self.p_ref_list[4] = self._midpoint(mp.landmark[0][11], mp.landmark[0][12])
-            self.p_ref_list[5] = self._midpoint(mp.landmark[0][23], mp.landmark[0][24])
+            self.p_ref_list[4] = self._midpoint(
+                mp.landmark[0][11], mp.landmark[0][12]
+            )
+            self.p_ref_list[5] = self._midpoint(
+                mp.landmark[0][23], mp.landmark[0][24]
+            )
 
             self.p_ref_list[6] = mp.landmark[0][23]
             self.p_ref_list[7] = mp.landmark[0][24]
@@ -156,7 +196,10 @@ class Clock:
             self.m_ref_list[0] = m_ref if m_ref > 0 else self.m_ref_list[0]
 
         elif self.scale_mode in {2, 3}:
-            for i, j in zip(range(0, len(self.p_ref_list), 2), range(len(self.m_ref_list))):
+            for i, j in zip(
+                range(0, len(self.p_ref_list), 2),
+                range(len(self.m_ref_list))
+            ):
                 m_ref = numpy.linalg.norm(
                     self.p_ref_list[i] - self.p_ref_list[i+1]
                 )
@@ -168,8 +211,8 @@ class Clock:
             for i in range(len(self.m_ref_list)):
                 self.k_m_ref_list[i] = self.m_ref_list[i]
 
-            self.ratio_A = self.k_m_ref_list[0] / self.k_m_ref_list[1]
-            self.ratio_B = self.k_m_ref_list[2] / self.k_m_ref_list[3]
+            self.scale_ratio_A = self.k_m_ref_list[0] / self.k_m_ref_list[1]
+            self.scale_ratio_B = self.k_m_ref_list[2] / self.k_m_ref_list[3]
 
             self.is_calibrated = True
 
@@ -187,7 +230,7 @@ class Clock:
         elif self.scale_mode == 3:
             ratio_A = self.m_ref_list[0] / self.m_ref_list[1]
 
-            if ratio_A >= self.ratio_A:
+            if ratio_A >= self.scale_ratio_A:
                 scale = self.m_ref_list[0] / self.k_m_ref_list[0]
             else:
                 scale = self.m_ref_list[1] / self.k_m_ref_list[1]
@@ -214,11 +257,35 @@ class Clock:
         if self.phi_r_hand < 0: self.phi_r_hand = self.phi_r_hand + 360
         self.phi_r_hand = self.phi_r_hand / 360
 
-        if self.clipped:
+        if self.is_clipped:
             self.r_hand =  numpy.clip(self.r_hand, 0, 1)
             self.phi_r_hand =  numpy.clip(self.phi_r_hand, 0, 1)
             self.x_r_hand =  numpy.clip(self.x_r_hand, 0, 1)
             self.y_r_hand =  numpy.clip(self.y_r_hand, 0, 1)
+
+    def _speed_tracking(self, mp):
+        self.position_history[0] = self.speed_tracked_point
+        self.speed_tracked_point = numpy.clip(
+            self.p_hand, [0,0], mp.image_size
+        )
+        self.position_history[1] = self.speed_tracked_point
+        self.position_abs_history = self.position_history.astype(int)
+        self.position_history = self.position_history / mp.image_size
+
+        self.instant[0] = self.instant[1]
+        self.instant[1] = time.monotonic_ns()
+
+        distance = self.position_history[1] - self.position_history[0]
+
+        self.direction = distance / numpy.linalg.norm(distance)
+        if numpy.any(distance == 0): self.direction = [0,0]
+
+        self.speed = (
+            abs(distance)
+            / (self.instant[1] - self.instant[0])
+        )
+        self.speed_magnitude = numpy.linalg.norm(self.speed) * (10 ** 10)
+        self.speed_magnitude = self.speed_magnitude / self.scale
 
     def update(self, mp):
         self._setup(mp)
@@ -227,9 +294,11 @@ class Clock:
         if self.is_calibrated:
             self._scaling()
             self._normalization()
+        self._speed_tracking(mp)
     
         if self.is_gesture_catcher:
-            if self.gesture_catcher == None: self.gesture_catcher = GestureCatcher(self, mp)
+            if self.gesture_catcher == None:
+                self.gesture_catcher = GestureCatcher(self, mp)
             self.gesture_catcher.update(self)
 
 
@@ -246,20 +315,12 @@ class GestureCatcher:
 
         self.speed_limit = 8
         self.speed_history_size = 5
-        self.distance_min = 0.2
-        self.line_width = 30
+        self.line_width_default = 40
+        self.line_width = 4
 
-        self.tracked = numpy.zeros([2], dtype=float)
-
-        self.position = numpy.full( [2, 2], numpy.zeros([2], dtype=int))
-        self.position_abs = numpy.full( [2, 2], numpy.zeros([2], dtype=int))
-        self.distance = 0.0
-
-        self.instant = numpy.full([2], time.monotonic_ns(), dtype = int)
-
-        self.speed = [0.0,0.0]
-        self.speed_magnitude = 0.0
-        self.speed_history = numpy.zeros([self.speed_history_size], dtype=float)
+        self.speed_history = numpy.zeros(
+            [self.speed_history_size], dtype=float
+        )
 
         self.is_catching = False
 
@@ -267,44 +328,60 @@ class GestureCatcher:
             [self.image_size[1], self.image_size[0], 4],
             numpy.zeros([4], dtype=numpy.uint8)
         )
+        self.gesture_image_classification = numpy.full(
+            [self.image_size[1], self.image_size[0], 4],
+            numpy.full([4], 255, dtype=numpy.uint8)
+        )
 
         self.gesture_points = numpy.array([])
 
-    def track(self):
-        self.position[0] = self.tracked
-        self.tracked = numpy.clip(self.clock.p_hand, [0,0], self.image_size)
-        self.position[1] = self.tracked
-
-        self.position_abs = numpy.array(self.position, dtype=int)
-        self.position = self.position / self.image_size
-
-        self.instant[0] = self.instant[1]
-        self.instant[1] = time.monotonic_ns()
-
-        self.distance = numpy.linalg.norm(self.position[1] - self.position[0])
-
-        self.speed = abs(self.position[1] - self.position[0]) / (self.instant[1] - self.instant[0])
-        self.speed_magnitude = numpy.linalg.norm(self.speed) * (10 ** 10)
-
     def scale(self):
-        self.distance_min = self.distance_min * self.clock.scale
-        self.speed_magnitude = self.speed_magnitude / self.clock.scale
+        self.line_width = (
+            int(
+                numpy.clip(
+                    self.line_width_default * self.clock.scale,
+                    4,
+                    2 * self.line_width_default
+                )
+            )
+        )
 
     def catch(self):
-        if self.speed_magnitude > self.speed_limit and self.is_catching == False and self.distance > self.distance_min:
+        if (
+            self.clock.speed_magnitude > self.speed_limit
+            and self.is_catching == False
+        ):
             self.is_catching = True
+
+            self.speed_history = numpy.full(
+                [self.speed_history_size], self.speed_limit,dtype=float
+            )
+
             self.gesture_points = numpy.array([])
-            self.speed_history = numpy.full([self.speed_history_size], self.speed_limit,dtype=float)
+
             self.gesture_image_reset()
         
         if self.is_catching:
             self.speed_history[:-1] = self.speed_history[1:]
-            self.speed_history[-1] = self.speed_magnitude
-            self.speed_magnitude = numpy.mean(self.speed_history)
+            self.speed_history[-1] = self.clock.speed_magnitude
+            self.clock.speed_magnitude = numpy.mean(self.speed_history)
+
             if len(self.gesture_points) < 1:
-                self.gesture_points = numpy.array([self.position_abs[0], self.position_abs[1]])
+                self.gesture_points = numpy.array(
+                    [
+                        self.clock.position_abs_history[0],
+                        self.clock.position_abs_history[1]
+                    ]
+                )
             else:
-                self.gesture_points = numpy.concatenate((self.gesture_points, [self.position_abs[1]]), axis=0)
+                self.gesture_points = numpy.concatenate(
+                    (
+                        self.gesture_points,
+                        [self.clock.position_abs_history[1]]
+                    ),
+                    axis=0
+                )
+
             self.gesture_image_update()
 
         if numpy.mean(self.speed_history) < self.speed_limit:
@@ -315,35 +392,73 @@ class GestureCatcher:
             [self.image_size[1], self.image_size[0], 4],
             numpy.zeros([4], dtype=numpy.uint8)
         )
+        self.gesture_image_classification = numpy.full(
+            [self.image_size[1], self.image_size[0], 4],
+            numpy.full([4], 255, dtype=numpy.uint8)
+        )
         
     def gesture_image_update(self):
-        color_intensity = self.speed_magnitude - self.speed_limit
+        color_intensity = self.clock.speed_magnitude - self.speed_limit
         color_intensity = color_intensity / (3 * self.speed_limit)
         color_intensity = int(color_intensity * 255)
 
-        # line_width = self.speed_magnitude - self.speed_limit
+        # line_width = self.clock.speed_magnitude - self.speed_limit
         # line_width = line_width / (3 * self.speed_limit)
         # line_width = int(line_width * 40)
         # line_width = numpy.clip(line_width, 4, 40)
 
-        cv2.line(self.gesture_image, self.position_abs[0], self.position_abs[1], (255, 0, color_intensity), self.line_width)
+        cv2.line(
+            self.gesture_image,
+            self.clock.position_abs_history[0],
+            self.clock.position_abs_history[1],
+            (255, 0, color_intensity),
+            self.line_width
+        )
+        cv2.line(
+            self.gesture_image_classification,
+            self.clock.position_abs_history[0],
+            self.clock.position_abs_history[1],
+            (0,0,0),
+            self.line_width
+        )
 
     def classify(self):
         save_img_files = False
 
-        image = self.gesture_image
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+        image = self.gesture_image_classification
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY).astype('uint8')
         if save_img_files: cv2.imwrite("gesture/gesture-00.png", image)
 
-        image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY).astype('uint8')
-        _, image = cv2.threshold(image, 1, 255, cv2.THRESH_BINARY)
-        image = ~image
         rect = [0,0,0,0]
         border = int(self.line_width / 2)
-        rect[0] = numpy.clip(numpy.min(self.gesture_points[:, 0]) - border, 0, self.image_size[0] - 1)
-        rect[1] = numpy.clip(numpy.max(self.gesture_points[:, 0]) + border, 0, self.image_size[0] - 1)
-        rect[2] = numpy.clip(numpy.min(self.gesture_points[:, 1]) - border, 0, self.image_size[1] - 1)
-        rect[3] = numpy.clip(numpy.max(self.gesture_points[:, 1]) + border, 0, self.image_size[1] - 1)
+        rect[0] = (
+            numpy.clip(
+                numpy.min(self.gesture_points[:, 0]) - border,
+                0,
+                self.image_size[0] - 1
+            )
+        )
+        rect[1] = (
+            numpy.clip(
+                numpy.max(self.gesture_points[:, 0]) + border,
+                0,
+                self.image_size[0] - 1
+            )
+        )
+        rect[2] = (
+            numpy.clip(
+                numpy.min(self.gesture_points[:, 1]) - border,
+                0,
+                self.image_size[1] - 1
+            )
+        )
+        rect[3] = (
+            numpy.clip(
+                numpy.max(self.gesture_points[:, 1]) + border,
+                0,
+                self.image_size[1] - 1
+            )
+        )
         image = image[rect[2]:rect[3], rect[0]:rect[1]]
         if save_img_files: cv2.imwrite("gesture/gesture-01-cropped.png", image)
 
@@ -351,7 +466,9 @@ class GestureCatcher:
         if save_img_files: cv2.imwrite("gesture/gesture-02-resized.png", image)
 
         image = image / 255
-        if save_img_files: cv2.imwrite("gesture/gesture-03-normalized.png", image)
+        if save_img_files: cv2.imwrite(
+            "gesture/gesture-03-normalized.png", image
+        )
 
         image = image.reshape(1,28,28,1)
 
@@ -363,7 +480,11 @@ class GestureCatcher:
 
     def update(self, clock):
         self.clock = clock
-        self.track()
         self.scale()
         self.catch()
-        if not self.is_catching and len(self.gesture_points) > 1: self.classify()
+        if (
+            self.clock.is_gesture_classifier
+            and not self.is_catching
+            and len(self.gesture_points) > 1
+        ):
+            self.classify()
