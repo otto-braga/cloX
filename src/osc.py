@@ -4,25 +4,42 @@ def client_setup(ip, port):
     return udp_client.SimpleUDPClient(ip, port)
 
 def make_messages(clocks):
-    messages = []
+    messages = {}
     for clock in clocks:
         address = '/cloX/' + clock.name + '/'
-        sep = ' '
-        messages.append(address + 'r_hand' + sep + str(clock.r_hand))
-        messages.append(address + 'phi_r_hand' + sep + str(clock.phi_r_hand))
-        messages.append(address + 'x_r_hand' + sep + str(clock.x_r_hand))
-        messages.append(address + 'y_r_hand' + sep + str(clock.y_r_hand))
-        messages.append(address + 'scale' + sep + str(clock.scale))
-        messages.append(address + 'speed' + sep + str(clock.speed_magnitude))
-        messages.append(address + 'p_clock_norm_x' + sep + str(clock.p_clock_norm[0]))
-        messages.append(address + 'p_clock_norm_y' + sep + str(clock.p_clock_norm[1]))
-        messages.append(address + 'p_hand_norm_x' + sep + str(clock.p_hand_norm[0]))
-        messages.append(address + 'p_hand_norm_y' + sep + str(clock.p_hand_norm[1]))
+        
+        messages[address + 'r_hand'] = clock.r_hand
+        messages[address + 'phi_r_hand'] = clock.phi_r_hand
+        messages[address + 'x_r_hand'] = clock.x_r_hand
+        messages[address + 'y_r_hand'] = clock.y_r_hand
+        messages[address + 'scale'] = clock.scale
+        messages[address + 'speed'] = clock.speed_magnitude
+        messages[address + 'direction_x'] = clock.direction[0]
+        messages[address + 'direction_y'] = clock.direction[1]
+        messages[address + 'p_clock_norm_x'] = clock.p_clock_norm[0]
+        messages[address + 'p_clock_norm_y'] = clock.p_clock_norm[1]
+        messages[address + 'p_hand_norm_x'] = clock.p_hand_norm[0]
+        messages[address + 'p_hand_norm_y'] = clock.p_hand_norm[1]
+
+        if (
+            clock.is_gesture_catcher
+            and not clock.gesture_catcher.is_catching
+            and len(clock.gesture_catcher.gesture_points)
+        ):
+            length = len(clock.gesture_catcher.gesture_points)
+            messages[address + 'gesture_points_length'] = length
+
+            for i in range(length):
+                messages[address + 'gesture_point_x_' + str(i)] = (
+                    int(clock.gesture_catcher.gesture_points[i,0])
+                )
+                messages[address + 'gesture_point_y_' + str(i)] = (
+                    int(clock.gesture_catcher.gesture_points[i,1])
+                )
+
     return messages
 
 def send(client, messages):
-    for message in messages:
-        message_split = message.split(sep=' ', maxsplit=1)
-        address = message_split[0]
-        argument = float(message_split[1])
-        client.send_message(address, argument)
+    for address, value in messages.items():
+        # print(address, value)
+        client.send_message(address, value)

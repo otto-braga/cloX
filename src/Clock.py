@@ -92,6 +92,7 @@ class Clock:
         self.gesture_catcher_model = None
         self.gesture_classification = None
         self.gesture_classification_accuracy = None
+        self.gesture_classification_array = None
 
         self.is_clipped = is_clipped
 
@@ -277,8 +278,10 @@ class Clock:
 
         distance = self.position_history[1] - self.position_history[0]
 
-        self.direction = distance / numpy.linalg.norm(distance)
-        if numpy.any(distance == 0): self.direction = [0,0]
+        if numpy.linalg.norm(distance) == 0:
+            self.direction = [0.0,0.0]
+        else:
+            self.direction = distance / numpy.linalg.norm(distance)
 
         self.speed = (
             abs(distance)
@@ -313,7 +316,7 @@ class GestureCatcher:
         self.clock = clock
         self.image_size = mp.image_size
 
-        self.speed_limit = 8
+        self.speed_limit = 3
         self.speed_history_size = 5
         self.line_width_default = 40
         self.line_width = 4
@@ -477,6 +480,7 @@ class GestureCatcher:
 
             self.clock.gesture_classification = numpy.argmax(res)
             self.clock.gesture_classification_accuracy = max(res)
+            self.clock.gesture_classification_array = res
 
     def update(self, clock):
         self.clock = clock

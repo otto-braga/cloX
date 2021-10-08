@@ -195,23 +195,26 @@ def main():
     cv2.destroyAllWindows()
 
 def print_clock(clock):
-    print(
-        clock.name, '\n',
-        "\t| r_hand polar", [clock.r_hand, clock.phi_r_hand], '\n',
-        "\t| r_hand cartesian", [clock.x_r_hand, clock.y_r_hand], '\n',
-        "\t| direction", clock.direction, '\n',
-        "\t| speed", clock.speed_magnitude, '\n',
-        "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
-        "\t| scale", clock.scale
-    )
-    if clock.is_gesture_catcher:
+    with numpy.printoptions(precision=3, suppress=True):
         print(
-            "\t| gesture_classification [class, acc]",
-            [
-                clock.gesture_classification,
-                clock.gesture_classification_accuracy
-            ]
+            clock.name, '\n',
+            "\t| r_hand polar", [clock.r_hand, clock.phi_r_hand], '\n',
+            "\t| r_hand cartesian", [clock.x_r_hand, clock.y_r_hand], '\n',
+            "\t| direction", clock.direction, '\n',
+            "\t| speed", clock.speed_magnitude, '\n',
+            "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
+            "\t| scale", clock.scale
         )
+        if clock.is_gesture_catcher:
+            print(
+                "\t| gesture_classification [class, acc]",
+                [
+                    clock.gesture_classification,
+                    clock.gesture_classification_accuracy
+                ], '\n',
+                "\t| classification_array",
+                clock.gesture_classification_array
+            )
     
 
 def draw_clock(clock, image):
