@@ -169,6 +169,7 @@ def main():
         for clock in clocks:
             print_clock(clock)
             image = draw_clock(clock, image)
+        print('\n')
 
         cv2.imshow(window_title, image)
 
@@ -205,7 +206,7 @@ def print_clock(clock):
             "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
             "\t| scale", clock.scale
         )
-        if clock.is_gesture_catcher:
+        if clock.is_gesture_classifier:
             print(
                 "\t| gesture_classification [class, acc]",
                 [

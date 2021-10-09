@@ -83,6 +83,10 @@ class Clock:
         self.instant = numpy.full([2], time.monotonic_ns(), dtype = int)
         self.speed = [0.0,0.0]
         self.speed_magnitude = 0.0
+        self.speed_history = numpy.zeros(
+            [5], dtype=float
+        )
+        self.speed_magnitude_average = 0.0
 
         self.is_gesture_catcher = is_gesture_catcher
         self.is_gesture_classifier = (
@@ -290,6 +294,10 @@ class Clock:
         self.speed_magnitude = numpy.linalg.norm(self.speed) * (10 ** 10)
         self.speed_magnitude = self.speed_magnitude / self.scale
 
+        self.speed_history[:-1] = self.speed_history[1:]
+        self.speed_history[-1] = self.speed_magnitude
+        self.speed_magnitude_average = numpy.mean(self.speed_history)
+
     def update(self, mp):
         self._setup(mp)
         self._translation()
@@ -338,7 +346,7 @@ class GestureCatcher:
 
         self.gesture_points = numpy.array([])
 
-    def scale(self):
+    def _scale(self):
         self.line_width = (
             int(
                 numpy.clip(
@@ -349,7 +357,7 @@ class GestureCatcher:
             )
         )
 
-    def catch(self):
+    def _catch(self):
         if (
             self.clock.speed_magnitude > self.speed_limit
             and self.is_catching == False
@@ -362,12 +370,12 @@ class GestureCatcher:
 
             self.gesture_points = numpy.array([])
 
-            self.gesture_image_reset()
+            self._gesture_image_reset()
         
         if self.is_catching:
             self.speed_history[:-1] = self.speed_history[1:]
             self.speed_history[-1] = self.clock.speed_magnitude
-            self.clock.speed_magnitude = numpy.mean(self.speed_history)
+            self.clock.speed_magnitude_average = numpy.mean(self.speed_history)
 
             if len(self.gesture_points) < 1:
                 self.gesture_points = numpy.array(
@@ -385,12 +393,12 @@ class GestureCatcher:
                     axis=0
                 )
 
-            self.gesture_image_update()
+            self._gesture_image_update()
 
         if numpy.mean(self.speed_history) < self.speed_limit:
             self.is_catching = False
     
-    def gesture_image_reset(self):
+    def _gesture_image_reset(self):
         self.gesture_image = numpy.full(
             [self.image_size[1], self.image_size[0], 4],
             numpy.zeros([4], dtype=numpy.uint8)
@@ -400,12 +408,12 @@ class GestureCatcher:
             numpy.full([4], 255, dtype=numpy.uint8)
         )
         
-    def gesture_image_update(self):
-        color_intensity = self.clock.speed_magnitude - self.speed_limit
+    def _gesture_image_update(self):
+        color_intensity = self.clock.speed_magnitude_average - self.speed_limit
         color_intensity = color_intensity / (3 * self.speed_limit)
         color_intensity = int(color_intensity * 255)
 
-        # line_width = self.clock.speed_magnitude - self.speed_limit
+        # line_width = self.clock.speed_magnitude_average - self.speed_limit
         # line_width = line_width / (3 * self.speed_limit)
         # line_width = int(line_width * 40)
         # line_width = numpy.clip(line_width, 4, 40)
@@ -425,7 +433,7 @@ class GestureCatcher:
             self.line_width
         )
 
-    def classify(self):
+    def _classify(self):
         save_img_files = False
 
         image = self.gesture_image_classification
@@ -484,11 +492,11 @@ class GestureCatcher:
 
     def update(self, clock):
         self.clock = clock
-        self.scale()
-        self.catch()
+        self._scale()
+        self._catch()
         if (
             self.clock.is_gesture_classifier
             and not self.is_catching
             and len(self.gesture_points) > 1
         ):
-            self.classify()
+            self._classify()

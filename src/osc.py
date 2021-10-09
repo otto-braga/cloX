@@ -14,6 +14,7 @@ def make_messages(clocks):
         messages[address + 'y_r_hand'] = clock.y_r_hand
         messages[address + 'scale'] = clock.scale
         messages[address + 'speed'] = clock.speed_magnitude
+        messages[address + 'speed_average'] = clock.speed_magnitude_average
         messages[address + 'direction_x'] = clock.direction[0]
         messages[address + 'direction_y'] = clock.direction[1]
         messages[address + 'p_clock_norm_x'] = clock.p_clock_norm[0]
