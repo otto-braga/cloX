@@ -5,7 +5,6 @@ from time import time
 import numpy
 import cv2
 import mediapipe
-import keras
 
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
@@ -48,13 +47,8 @@ def main():
             i_p_ref_C = clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
             i_p_ref_D = clock["i_p_ref_D"] if scale_mode == 2 else [0,0],
             is_gesture_catcher = bool(clock["is_gesture_catcher"]),
-            is_gesture_classifier = bool(clock["is_gesture_classifier"]),
             is_clipped = bool(clock["is_clipped"])
         )
-        if clock_new.is_gesture_catcher:
-            clock_new.gesture_catcher_model = keras.models.load_model(
-                'gesture/model.h5'
-            )
         clocks.append(clock_new)
 
     # initialization
@@ -169,7 +163,6 @@ def main():
         for clock in clocks:
             print_clock(clock)
             image = draw_clock(clock, image)
-        print('\n')
 
         cv2.imshow(window_title, image)
 
@@ -206,17 +199,6 @@ def print_clock(clock):
             "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
             "\t| scale", clock.scale
         )
-        if clock.is_gesture_classifier:
-            print(
-                "\t| gesture_classification [class, acc]",
-                [
-                    clock.gesture_classification,
-                    clock.gesture_classification_accuracy
-                ], '\n',
-                "\t| classification_array",
-                clock.gesture_classification_array
-            )
-    
 
 def draw_clock(clock, image):
     color = (0,0,128)
@@ -267,4 +249,3 @@ def draw_mediapipe_parsed_landmarks(mp_parsed, image):
 
 if __name__ == '__main__':
     main()
-

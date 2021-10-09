@@ -1,6 +1,6 @@
 {
     "setup": {
-        "camera_id": "http://192.168.42.129:4747/video",
+        "camera_id": 0,
         "camera_width": 640,
         "camera_height": 480,
         "camera_fps": 60,
@@ -20,7 +20,6 @@
             "i_p_ref_C": [0,0],
             "i_p_ref_D": [0,0],
             "is_gesture_catcher": 1,
-            "is_gesture_classifier": 1,
             "is_clipped": 1
         }
     ]

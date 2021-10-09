@@ -89,14 +89,7 @@ class Clock:
         self.speed_magnitude_average = 0.0
 
         self.is_gesture_catcher = is_gesture_catcher
-        self.is_gesture_classifier = (
-            is_gesture_classifier * is_gesture_catcher
-        )
         self.gesture_catcher = None
-        self.gesture_catcher_model = None
-        self.gesture_classification = None
-        self.gesture_classification_accuracy = None
-        self.gesture_classification_array = None
 
         self.is_clipped = is_clipped
 
@@ -339,10 +332,6 @@ class GestureCatcher:
             [self.image_size[1], self.image_size[0], 4],
             numpy.zeros([4], dtype=numpy.uint8)
         )
-        self.gesture_image_classification = numpy.full(
-            [self.image_size[1], self.image_size[0], 4],
-            numpy.full([4], 255, dtype=numpy.uint8)
-        )
 
         self.gesture_points = numpy.array([])
 
@@ -403,10 +392,6 @@ class GestureCatcher:
             [self.image_size[1], self.image_size[0], 4],
             numpy.zeros([4], dtype=numpy.uint8)
         )
-        self.gesture_image_classification = numpy.full(
-            [self.image_size[1], self.image_size[0], 4],
-            numpy.full([4], 255, dtype=numpy.uint8)
-        )
         
     def _gesture_image_update(self):
         color_intensity = self.clock.speed_magnitude_average - self.speed_limit
@@ -425,78 +410,8 @@ class GestureCatcher:
             (255, 0, color_intensity),
             self.line_width
         )
-        cv2.line(
-            self.gesture_image_classification,
-            self.clock.position_abs_history[0],
-            self.clock.position_abs_history[1],
-            (0,0,0),
-            self.line_width
-        )
-
-    def _classify(self):
-        save_img_files = False
-
-        image = self.gesture_image_classification
-        image = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY).astype('uint8')
-        if save_img_files: cv2.imwrite("gesture/gesture-00.png", image)
-
-        rect = [0,0,0,0]
-        border = int(self.line_width / 2)
-        rect[0] = (
-            numpy.clip(
-                numpy.min(self.gesture_points[:, 0]) - border,
-                0,
-                self.image_size[0] - 1
-            )
-        )
-        rect[1] = (
-            numpy.clip(
-                numpy.max(self.gesture_points[:, 0]) + border,
-                0,
-                self.image_size[0] - 1
-            )
-        )
-        rect[2] = (
-            numpy.clip(
-                numpy.min(self.gesture_points[:, 1]) - border,
-                0,
-                self.image_size[1] - 1
-            )
-        )
-        rect[3] = (
-            numpy.clip(
-                numpy.max(self.gesture_points[:, 1]) + border,
-                0,
-                self.image_size[1] - 1
-            )
-        )
-        image = image[rect[2]:rect[3], rect[0]:rect[1]]
-        if save_img_files: cv2.imwrite("gesture/gesture-01-cropped.png", image)
-
-        image = cv2.resize(image, (28,28))
-        if save_img_files: cv2.imwrite("gesture/gesture-02-resized.png", image)
-
-        image = image / 255
-        if save_img_files: cv2.imwrite(
-            "gesture/gesture-03-normalized.png", image
-        )
-
-        image = image.reshape(1,28,28,1)
-
-        if self.clock.gesture_catcher_model != None:
-            res = self.clock.gesture_catcher_model.predict([image])[0]
-
-            self.clock.gesture_classification = numpy.argmax(res)
-            self.clock.gesture_classification_accuracy = max(res)
-            self.clock.gesture_classification_array = res
 
     def update(self, clock):
         self.clock = clock
         self._scale()
         self._catch()
-        if (
-            self.clock.is_gesture_classifier
-            and not self.is_catching
-            and len(self.gesture_points) > 1
-        ):
-            self._classify()
