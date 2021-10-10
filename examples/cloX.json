@@ -1,6 +1,6 @@
 {
     "setup": {
-        "camera_id": 0,
+        "camera_id": "http://192.168.2.100:4747/video",
         "camera_width": 640,
         "camera_height": 480,
         "camera_fps": 60,
@@ -19,7 +19,26 @@
             "i_p_ref_B": [0,0],
             "i_p_ref_C": [0,0],
             "i_p_ref_D": [0,0],
-            "is_gesture_catcher": 1,
+            "drawn_gesture_catcher": [
+                {
+                    "name": "A",
+                    "threshold_catch": 4,
+                    "threshold_release": 4,
+                    "speed_history_size": 10
+                },
+                {
+                    "name": "B",
+                    "threshold_catch": 6,
+                    "threshold_release": 4,
+                    "speed_history_size": 10
+                },
+                {
+                    "name": "C",
+                    "threshold_catch": 4,
+                    "threshold_release": 6,
+                    "speed_history_size": 10
+                }
+            ],
             "is_clipped": 1
         }
     ]

@@ -8,7 +8,7 @@ import mediapipe
 
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
-from Clock import Clock
+from Clock import Clock, DrawnGestureCatcher
 
 import osc
 
@@ -46,9 +46,25 @@ def main():
             i_p_ref_B = clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
             i_p_ref_C = clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
             i_p_ref_D = clock["i_p_ref_D"] if scale_mode == 2 else [0,0],
-            is_gesture_catcher = bool(clock["is_gesture_catcher"]),
             is_clipped = bool(clock["is_clipped"])
         )
+        if "drawn_gesture_catcher" in clock:
+            clock_new.drawn_gesture_catcher = []
+            for drawn_gesture_catcher in clock["drawn_gesture_catcher"]:
+                drawn_gesture_catcher_new = DrawnGestureCatcher(
+                    clock = clock_new,
+                    name = drawn_gesture_catcher['name'],
+                    threshold_catch = drawn_gesture_catcher['threshold_catch'],
+                    threshold_release = (
+                        drawn_gesture_catcher['threshold_release']
+                    ),
+                    speed_history_size = (
+                        drawn_gesture_catcher['speed_history_size']
+                    )
+                )
+                clock_new.drawn_gesture_catcher.append(
+                    drawn_gesture_catcher_new
+                )
         clocks.append(clock_new)
 
     # initialization
@@ -207,11 +223,12 @@ def draw_clock(clock, image):
     cv2.line(image, clock.p_clock, clock.p_hand, color, 2)
     cv2.circle(image, clock.p_clock, 4, color, -1)
 
-    if clock.is_gesture_catcher:
-        added_image = cv2.addWeighted(
-            image, 1, clock.gesture_catcher.gesture_image, 0.5, 0
-        )
-        image = added_image
+    if clock.drawn_gesture_catcher:
+        for drawn_gesture_catcher in clock.drawn_gesture_catcher:
+            added_image = cv2.addWeighted(
+                image, 1, drawn_gesture_catcher.gesture_image, 0.5, 0
+            )
+            image = added_image
     
     return image
 

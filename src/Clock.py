@@ -20,8 +20,7 @@ class Clock:
         i_p_ref_C = (0,0),
         i_p_ref_D = (0,0),
 
-        is_gesture_catcher = True,
-        is_gesture_classifier = False,
+        drawn_gesture_catcher = None,
 
         is_clipped = True
     ):
@@ -88,8 +87,7 @@ class Clock:
         )
         self.speed_magnitude_average = 0.0
 
-        self.is_gesture_catcher = is_gesture_catcher
-        self.gesture_catcher = None
+        self.drawn_gesture_catcher = drawn_gesture_catcher
 
         self.is_clipped = is_clipped
 
@@ -300,39 +298,44 @@ class Clock:
             self._normalization()
         self._speed_tracking(mp)
     
-        if self.is_gesture_catcher:
-            if self.gesture_catcher == None:
-                self.gesture_catcher = GestureCatcher(self, mp)
-            self.gesture_catcher.update(self)
+        if self.drawn_gesture_catcher:
+            for drawn_gesture_catcher in self.drawn_gesture_catcher:
+                drawn_gesture_catcher.update(self, mp.image_size)
 
 
 
 
-class GestureCatcher:
+class DrawnGestureCatcher:
     def __init__(
         self,
         clock,
-        mp
+        name = "",
+        threshold_catch = 4,
+        threshold_release = 4,
+        speed_history_size = 5
     ):
         self.clock = clock
-        self.image_size = mp.image_size
-
-        self.speed_limit = 3
-        self.speed_history_size = 5
-        self.line_width_default = 40
-        self.line_width = 4
+        self.name = name
+        self.threshold_catch = threshold_catch
+        self.threshold_release = threshold_release
+        self.speed_history_size = speed_history_size
 
         self.speed_history = numpy.zeros(
             [self.speed_history_size], dtype=float
         )
 
-        self.is_catching = False
+        self.image_size = None
 
-        self.gesture_image = numpy.full(
-            [self.image_size[1], self.image_size[0], 4],
-            numpy.zeros([4], dtype=numpy.uint8)
+        self.color = (
+            numpy.random.randint(0, 127),
+            numpy.random.randint(0, 127),
+            numpy.random.randint(0, 127)
         )
-
+        self.line_width_default = 40
+        self.line_width = 4
+        
+        self.is_catching = False
+        self.gesture_image = None
         self.gesture_points = numpy.array([])
 
     def _scale(self):
@@ -348,13 +351,13 @@ class GestureCatcher:
 
     def _catch(self):
         if (
-            self.clock.speed_magnitude > self.speed_limit
+            self.clock.speed_magnitude > self.threshold_catch
             and self.is_catching == False
         ):
             self.is_catching = True
 
             self.speed_history = numpy.full(
-                [self.speed_history_size], self.speed_limit,dtype=float
+                [self.speed_history_size], self.threshold_catch,dtype=float
             )
 
             self.gesture_points = numpy.array([])
@@ -384,7 +387,7 @@ class GestureCatcher:
 
             self._gesture_image_update()
 
-        if numpy.mean(self.speed_history) < self.speed_limit:
+        if numpy.mean(self.speed_history) < self.threshold_release:
             self.is_catching = False
     
     def _gesture_image_reset(self):
@@ -394,24 +397,32 @@ class GestureCatcher:
         )
         
     def _gesture_image_update(self):
-        color_intensity = self.clock.speed_magnitude_average - self.speed_limit
-        color_intensity = color_intensity / (3 * self.speed_limit)
-        color_intensity = int(color_intensity * 255)
+        color_intensity = self.clock.speed_magnitude_average - self.threshold_catch
+        color_intensity = color_intensity / (2 * self.threshold_catch)
+        color = (
+            int(numpy.clip(color_intensity * self.color[0], 48, 255)),
+            int(numpy.clip(color_intensity * self.color[1], 48, 255)),
+            int(numpy.clip(color_intensity * self.color[2], 48, 255))
+        )
 
-        # line_width = self.clock.speed_magnitude_average - self.speed_limit
-        # line_width = line_width / (3 * self.speed_limit)
-        # line_width = int(line_width * 40)
-        # line_width = numpy.clip(line_width, 4, 40)
+        index = self.clock.drawn_gesture_catcher.index(self)
+        line_width = int(
+            self.line_width_default / len(self.clock.drawn_gesture_catcher)
+        )
 
         cv2.line(
             self.gesture_image,
-            self.clock.position_abs_history[0],
-            self.clock.position_abs_history[1],
-            (255, 0, color_intensity),
-            self.line_width
+            self.clock.position_abs_history[0] + (0, index * line_width),
+            self.clock.position_abs_history[1] + (0, index * line_width),
+            color,
+            int(line_width / 2)
         )
 
-    def update(self, clock):
+    def update(self, clock, image_size):
         self.clock = clock
+        if self.image_size == None:
+            self.image_size = image_size
+            self._gesture_image_reset()
+
         self._scale()
         self._catch()

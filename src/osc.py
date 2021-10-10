@@ -22,21 +22,22 @@ def make_messages(clocks):
         messages[address + 'p_hand_norm_x'] = clock.p_hand_norm[0]
         messages[address + 'p_hand_norm_y'] = clock.p_hand_norm[1]
 
-        if (
-            clock.is_gesture_catcher
-            and not clock.gesture_catcher.is_catching
-            and len(clock.gesture_catcher.gesture_points)
-        ):
-            length = len(clock.gesture_catcher.gesture_points)
-            messages[address + 'gesture_points_length'] = length
+        if clock.drawn_gesture_catcher:
+            for drawn_gesture_catcher in clock.drawn_gesture_catcher:
+                if (
+                    not drawn_gesture_catcher.is_catching
+                    and len(drawn_gesture_catcher.gesture_points)
+                ):
+                    length = len(drawn_gesture_catcher.gesture_points)
+                    messages[address + 'gesture_points_length'] = length
 
-            for i in range(length):
-                messages[address + 'gesture_point_x_' + str(i)] = (
-                    int(clock.gesture_catcher.gesture_points[i,0])
-                )
-                messages[address + 'gesture_point_y_' + str(i)] = (
-                    int(clock.gesture_catcher.gesture_points[i,1])
-                )
+                    for i in range(length):
+                        messages[address + 'gesture_point_x_' + str(i)] = (
+                            int(drawn_gesture_catcher.gesture_points[i,0])
+                        )
+                        messages[address + 'gesture_point_y_' + str(i)] = (
+                            int(drawn_gesture_catcher.gesture_points[i,1])
+                        )
 
     return messages
 
