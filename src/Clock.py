@@ -14,7 +14,7 @@ class Clock:
         i_p_clock = (0,0,-1,-1),
         i_p_hand = (0,0,-1,-1),
 
-        scale_mode = 0,
+        scale_mode = 3,
         i_p_ref_A = (0,0),
         i_p_ref_B = (0,0),
         i_p_ref_C = (0,0),
@@ -86,6 +86,18 @@ class Clock:
             [5], dtype=float
         )
         self.speed_magnitude_average = 0.0
+
+        self.speed_tracked_point_relative = numpy.zeros([2], dtype=float)
+        self.position_history_relative = numpy.full([2, 2], numpy.zeros([2], dtype=int))
+        self.position_abs_history_relative = numpy.full([2, 2], numpy.zeros([2], dtype=int))
+        self.direction_relative = numpy.zeros([2], dtype=float)
+        self.instant_relative = numpy.full([2], time.monotonic_ns(), dtype = int)
+        self.speed_relative = [0.0,0.0]
+        self.speed_magnitude_relative = 0.0
+        self.speed_history_relative = numpy.zeros(
+            [5], dtype=float
+        )
+        self.speed_magnitude_average_relative = 0.0
 
         self.drawn_gesture_catcher = drawn_gesture_catcher
 
@@ -289,6 +301,36 @@ class Clock:
         self.speed_history[-1] = self.speed_magnitude
         self.speed_magnitude_average = numpy.mean(self.speed_history)
 
+    def _speed_tracking_relative(self, mp):
+        self.position_history_relative[0] = self.speed_tracked_point_relative
+        self.speed_tracked_point_relative = numpy.clip(
+            self.p_norm, [0,0], mp.image_size
+        )
+        self.position_history_relative[1] = self.speed_tracked_point_relative
+        self.position_abs_history_relative = self.position_history_relative.astype(int)
+        self.position_history_relative = self.position_history_relative / [1,1]
+
+        self.instant_relative[0] = self.instant_relative[1]
+        self.instant_relative[1] = time.monotonic_ns()
+
+        distance = self.position_history_relative[1] - self.position_history_relative[0]
+
+        if numpy.linalg.norm(distance) == 0:
+            self.direction_relative = [0.0,0.0]
+        else:
+            self.direction_relative = distance / numpy.linalg.norm(distance)
+
+        self.speed_relative = (
+            abs(distance)
+            / (self.instant_relative[1] - self.instant_relative[0])
+        )
+        self.speed_magnitude_relative = numpy.linalg.norm(self.speed_relative) * (10 ** 10)
+        self.speed_magnitude_relative = self.speed_magnitude_relative / self.scale
+
+        self.speed_history_relative[:-1] = self.speed_history_relative[1:]
+        self.speed_history_relative[-1] = self.speed_magnitude_relative
+        self.speed_magnitude_average_relative = numpy.mean(self.speed_history_relative)
+
     def update(self, mp):
         self._setup(mp)
         self._translation()
@@ -296,6 +338,7 @@ class Clock:
         if self.is_calibrated:
             self._scaling()
             self._normalization()
+            self._speed_tracking_relative(mp)
         self._speed_tracking(mp)
     
         if self.drawn_gesture_catcher:
@@ -333,7 +376,7 @@ class DrawnGestureCatcher:
         )
         self.line_width_default = 40
         self.line_width = 4
-        
+
         self.is_catching = False
         self.gesture_image = None
         self.gesture_points = numpy.array([])

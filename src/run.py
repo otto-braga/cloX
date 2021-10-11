@@ -36,20 +36,27 @@ def main():
     osc_port = project['setup']['osc_port']
 
     for clock in project['clocks']:
-        scale_mode = clock["scale_mode"]
         clock_new = Clock(
             name = clock["name"],
             i_p_clock = clock["i_p_clock"],
-            i_p_hand = clock["i_p_hand"],
-            scale_mode = clock["scale_mode"],
-            i_p_ref_A = clock["i_p_ref_A"] if 0 < scale_mode < 3 else [0,0],
-            i_p_ref_B = clock["i_p_ref_B"] if 0 < scale_mode < 3 else [0,0],
-            i_p_ref_C = clock["i_p_ref_C"] if scale_mode == 2 else [0,0],
-            i_p_ref_D = clock["i_p_ref_D"] if scale_mode == 2 else [0,0],
-            is_clipped = bool(clock["is_clipped"])
+            i_p_hand = clock["i_p_hand"]
         )
+
+        if "scale_mode" in clock:
+            clock_new.scale_mode = clock["scale_mode"]
+
+            if 0 < clock["scale_mode"] < 3:
+                clock_new.i_p_ref_A = clock["i_p_ref_A"]
+                clock_new.i_p_ref_B = clock["i_p_ref_B"]
+                if clock["scale_mode"] == 2:
+                    clock_new.i_p_ref_C = clock["i_p_ref_C"]
+                    clock_new.i_p_ref_D = clock["i_p_ref_D"]
+        else:
+            clock_new.scale_mode = 3
+
         if "drawn_gesture_catcher" in clock:
             clock_new.drawn_gesture_catcher = []
+
             for drawn_gesture_catcher in clock["drawn_gesture_catcher"]:
                 drawn_gesture_catcher_new = DrawnGestureCatcher(
                     clock = clock_new,
@@ -62,9 +69,16 @@ def main():
                         drawn_gesture_catcher['speed_history_size']
                     )
                 )
+
                 clock_new.drawn_gesture_catcher.append(
                     drawn_gesture_catcher_new
                 )
+
+        if "is_clipped" in clock:
+            clock_new.is_clipped = bool(clock["is_clipped"])
+        else:
+            clock_new.is_clipped = True
+
         clocks.append(clock_new)
 
     # initialization
@@ -212,6 +226,7 @@ def print_clock(clock):
             "\t| r_hand cartesian", [clock.x_r_hand, clock.y_r_hand], '\n',
             "\t| direction", clock.direction, '\n',
             "\t| speed", clock.speed_magnitude, '\n',
+            "\t| relative speed", clock.speed_magnitude_relative, '\n',
             "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
             "\t| scale", clock.scale
         )
