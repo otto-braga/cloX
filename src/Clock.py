@@ -127,10 +127,11 @@ class Clock:
         self.osc_server = osc_server.ThreadingOSCUDPServer(
             (osc_rcv_ip, osc_rcv_port), self.osc_dispatcher
         )
-        self.osc_server_thread = Thread(
-            target = self.osc_server.serve_forever,
-            args = ()
-        ).start()
+        self.osc_server_thread = None
+        # self.osc_server_thread = Thread(
+        #     target = self.osc_server.serve_forever,
+        #     args = ()
+        # ).start()
 
     # Auxiliary methods.
     # ------------------
@@ -439,6 +440,13 @@ class Clock:
     def _osc_receive(self):
         self.osc_dispatcher.map('/cloX/' + self.depth_clock_name + '/x_r_hand', self._set_depth)
 
+    def _osc_server_init(self):
+        if self.scale_mode == 4 and self.osc_server_thread == None:
+            self.osc_server_thread = Thread(
+                target = self.osc_server.serve_forever,
+                args = ()
+            ).start()
+
     def print_clock(self):
         with numpy.printoptions(precision=3, suppress=True):
             print(
@@ -469,6 +477,7 @@ class Clock:
         return image
 
     def update(self, mp):
+        self._osc_server_init()
         self._setup(mp)
         self._translation()
         self._calibration()
