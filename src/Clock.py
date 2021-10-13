@@ -128,7 +128,7 @@ class Clock:
         if any(n < 0 for n in i_point_A):
             i_point_A = numpy.abs(i_point_A)
             return numpy.array(
-                mp.landmark[i_point_A[0]][i_point_A[1]] * mp.image_size,
+                i_point_A * mp.image_size,
                 dtype=int
             )
         if any(n < 0 for n in i_point_B):
@@ -268,8 +268,8 @@ class Clock:
         if self.is_clipped:
             self.r_hand =  numpy.clip(self.r_hand, 0, 1)
             self.phi_r_hand =  numpy.clip(self.phi_r_hand, 0, 1)
-            self.x_r_hand =  numpy.clip(self.x_r_hand, 0, 1)
-            self.y_r_hand =  numpy.clip(self.y_r_hand, 0, 1)
+            self.x_r_hand =  numpy.clip(self.x_r_hand, -1, 1)
+            self.y_r_hand =  numpy.clip(self.y_r_hand, -1, 1)
 
     def _speed_tracking(self, mp):
         self.position_history[0] = self.speed_tracked_point

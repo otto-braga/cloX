@@ -71,5 +71,5 @@ def make_messages(clocks):
 
 def send(client, messages):
     for address, value in messages.items():
-        print(address, value)
+        # print(address, value)
         client.send_message(address, value)
