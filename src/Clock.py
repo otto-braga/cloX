@@ -1,7 +1,9 @@
 import time
+from threading import Thread
 
 import numpy
 import cv2
+from pythonosc import udp_client, dispatcher, osc_server
 
 
 
@@ -19,10 +21,18 @@ class Clock:
         i_p_ref_B = (0,0),
         i_p_ref_C = (0,0),
         i_p_ref_D = (0,0),
+        depth_clock_name = '',
+        depth_flip = False,
+        is_depth_clock = False,
 
         drawn_gesture_catcher = None,
 
-        is_clipped = True
+        is_clipped = True,
+
+        osc_send_ip = '127.0.0.1',
+        osc_send_port = 4747,
+        osc_rcv_ip = '127.0.0.1',
+        osc_rcv_port = 4748
     ):
         self.name = name
 
@@ -75,6 +85,11 @@ class Clock:
         self.scale_ratio_A = 1.0
         self.scale_ratio_B = 1.0
 
+        self.depth_clock_name = depth_clock_name
+        self.depth_flip = depth_flip
+        self.depth_clock_r = 1.0
+        self.is_depth_clock = is_depth_clock
+
         self.speed_tracked_point = numpy.zeros([2], dtype=float)
         self.position_history = numpy.full([2, 2], numpy.zeros([2], dtype=int))
         self.position_abs_history = numpy.full([2, 2], numpy.zeros([2], dtype=int))
@@ -102,6 +117,20 @@ class Clock:
         self.drawn_gesture_catcher = drawn_gesture_catcher
 
         self.is_clipped = is_clipped
+
+        self.osc_client = udp_client.SimpleUDPClient(
+            osc_send_ip, osc_send_port
+        )
+
+        self.osc_dispatcher = dispatcher.Dispatcher()
+        self._osc_receive()
+        self.osc_server = osc_server.ThreadingOSCUDPServer(
+            (osc_rcv_ip, osc_rcv_port), self.osc_dispatcher
+        )
+        self.osc_server_thread = Thread(
+            target = self.osc_server.serve_forever,
+            args = ()
+        ).start()
 
     # Auxiliary methods.
     # ------------------
@@ -138,6 +167,9 @@ class Clock:
             mp.landmark[i_point_A[0]][i_point_A[1]],
             mp.landmark[i_point_B[0]][i_point_B[1]]
         )
+
+    def _set_depth(self, address, args):
+        self.depth_clock_r = -args if self.depth_flip else args
 
     # Main methods.
     # -------------
@@ -243,6 +275,9 @@ class Clock:
             else:
                 scale = self.m_ref_list[1] / self.k_m_ref_list[1]
 
+        elif self.scale_mode == 4:
+            scale = ((self.depth_clock_r + 1) / 2) + 1
+
         self.scale_history[:-1] = self.scale_history[1:]
         self.scale_history[-1] = scale
         self.scale = numpy.mean(self.scale_history)
@@ -331,6 +366,108 @@ class Clock:
         self.speed_history_relative[-1] = self.speed_magnitude_relative
         self.speed_magnitude_average_relative = numpy.mean(self.speed_history_relative)
 
+    def _osc_send(self):
+        msg = {}
+        address = '/cloX/' + self.name + '/'
+        
+        if self.is_depth_clock:
+            msg[address + 'x_r_hand'] = self.x_r_hand
+        else:
+            msg[address + 'r_hand'] = self.r_hand
+            msg[address + 'phi_r_hand'] = self.phi_r_hand
+            msg[address + 'x_r_hand'] = self.x_r_hand
+            msg[address + 'y_r_hand'] = self.y_r_hand
+            msg[address + 'scale'] = self.scale
+            msg[address + 'speed'] = self.speed_magnitude
+            msg[address + 'speed_average'] = self.speed_magnitude_average
+            msg[address + 'direction_x'] = self.direction[0]
+            msg[address + 'direction_y'] = self.direction[1]
+            msg[address + 'speed_relative'] = self.speed_magnitude_relative
+            msg[address + 'speed_average_relative'] = self.speed_magnitude_average_relative
+            msg[address + 'direction_x_relative'] = self.direction_relative[0]
+            msg[address + 'direction_y_relative'] = self.direction_relative[1]
+            msg[address + 'p_clock_norm_x'] = self.p_clock_norm[0]
+            msg[address + 'p_clock_norm_y'] = self.p_clock_norm[1]
+            msg[address + 'p_hand_norm_x'] = self.p_hand_norm[0]
+            msg[address + 'p_hand_norm_y'] = self.p_hand_norm[1]
+
+            if self.drawn_gesture_catcher:
+                for drawn_gesture_catcher in self.drawn_gesture_catcher:
+                    address_g = (
+                        address
+                        + 'drawn_gesture/'
+                        + drawn_gesture_catcher.name
+                        + '/'
+                    )
+
+                    msg[address_g + 'is_catching'] = (
+                        int(drawn_gesture_catcher.is_catching)
+                    )
+
+                    msg[address_g + 'threshold_catch'] = (
+                        drawn_gesture_catcher.threshold_catch
+                    )
+
+                    msg[address_g + 'threshold_release'] = (
+                        drawn_gesture_catcher.threshold_release
+                    )
+
+                    msg[address_g + 'speed_history_size'] = (
+                        drawn_gesture_catcher.speed_history_size
+                    )
+
+                    if (
+                        not drawn_gesture_catcher.is_catching
+                        and len(drawn_gesture_catcher.gesture_points)
+                    ):
+                        length = len(drawn_gesture_catcher.gesture_points)
+
+                        msg[address_g + 'gesture_points_length'] = length
+
+                        for i in range(length):
+                            msg[address_g + 'gesture_point_x_' + str(i)] = (
+                                int(drawn_gesture_catcher.gesture_points[i,0])
+                            )
+                            msg[address_g + 'gesture_point_y_' + str(i)] = (
+                                int(drawn_gesture_catcher.gesture_points[i,1])
+                            )
+
+        for address, value in msg.items():
+            # print(address, value)
+            self.osc_client.send_message(address, value)
+
+    def _osc_receive(self):
+        self.osc_dispatcher.map('/cloX/' + self.depth_clock_name + '/x_r_hand', self._set_depth)
+
+    def print_clock(self):
+        with numpy.printoptions(precision=3, suppress=True):
+            print(
+                self.name, '\n',
+                "\t| r_hand polar", [self.r_hand, self.phi_r_hand], '\n',
+                "\t| r_hand cartesian", [self.x_r_hand, self.y_r_hand], '\n',
+                "\t| direction", self.direction, '\n',
+                "\t| speed", self.speed_magnitude, '\n',
+                "\t| relative speed", self.speed_magnitude_relative, '\n',
+                "\t| p_clock", self.p_clock, " | p_hand", self.p_hand, '\n',
+                "\t| scale", self.scale
+            )
+
+    def draw_clock(self, image):
+        color = (0,0,128)
+        cv2.circle(image, self.p_clock, int(self.r_clock), color, 1)
+        cv2.circle(image, self.p_hand, 4, color, -1)
+        cv2.line(image, self.p_clock, self.p_hand, color, 2)
+        cv2.circle(image, self.p_clock, 4, color, -1)
+
+        if self.drawn_gesture_catcher:
+            for drawn_gesture_catcher in self.drawn_gesture_catcher:
+                added_image = cv2.addWeighted(
+                    image, 1, drawn_gesture_catcher.gesture_image, 0.5, 0
+                )
+                image = added_image
+        
+        return image
+
     def update(self, mp):
         self._setup(mp)
         self._translation()
@@ -344,6 +481,8 @@ class Clock:
         if self.drawn_gesture_catcher:
             for drawn_gesture_catcher in self.drawn_gesture_catcher:
                 drawn_gesture_catcher.update(self, mp.image_size)
+
+        self._osc_send()
 
 
 

@@ -32,14 +32,20 @@ def main():
     min_detect_conf = project['setup']['mp_min_detect_conf']
     min_track_conf = project['setup']['mp_min_track_conf']
 
-    osc_ip = project['setup']['osc_ip']
-    osc_port = project['setup']['osc_port']
+    osc_send_ip = project['setup']['osc_send_ip']
+    osc_send_port = project['setup']['osc_send_port']
+    osc_rcv_ip = project['setup']['osc_rcv_ip']
+    osc_rcv_port = project['setup']['osc_rcv_port']
 
     for clock in project['clocks']:
         clock_new = Clock(
             name = clock["name"],
             i_p_clock = clock["i_p_clock"],
-            i_p_hand = clock["i_p_hand"]
+            i_p_hand = clock["i_p_hand"],
+            osc_send_ip = osc_send_ip,
+            osc_send_port = osc_send_port,
+            osc_rcv_ip = osc_rcv_ip,
+            osc_rcv_port = osc_rcv_port
         )
 
         if "scale_mode" in clock:
@@ -51,6 +57,10 @@ def main():
                 if clock["scale_mode"] == 2:
                     clock_new.i_p_ref_C = clock["i_p_ref_C"]
                     clock_new.i_p_ref_D = clock["i_p_ref_D"]
+            elif clock['scale_mode'] == 4:
+                clock_new.depth_clock_name = clock['depth_clock_name']
+                if 'depth_flip' in clock:
+                    clock_new.depth_flip = bool(clock['depth_flip'])
         else:
             clock_new.scale_mode = 3
 
@@ -79,6 +89,9 @@ def main():
         else:
             clock_new.is_clipped = True
 
+        if "is_depth_clock" in clock:
+            clock_new.is_depth_clock = bool(clock['is_depth_clock'])
+
         clocks.append(clock_new)
 
     # initialization
@@ -99,8 +112,6 @@ def main():
     )
 
     mp_parsed = MediapipeParsed([camera_width, camera_height])
-
-    osc_client = osc.client_setup(osc_ip, osc_port)
 
     # OpenCV window
     # -------------
@@ -191,16 +202,10 @@ def main():
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGBA)
 
         for clock in clocks:
-            print_clock(clock)
-            image = draw_clock(clock, image)
+            clock.print_clock()
+            image = clock.draw_clock(image)
 
         cv2.imshow(window_title, image)
-
-        # send OSC messages
-        # -------------------
-
-        osc_messages = osc.make_messages(clocks)
-        osc.send(osc_client, osc_messages)
 
         # OpenCV window quitting manager
         # ------------------------------
@@ -216,36 +221,10 @@ def main():
     
     mp_holistic.close()
     video.stop = True
+    for clock in clocks:
+        if clock.osc_server_thread:
+            clock.osc_server_thread.join()
     cv2.destroyAllWindows()
-
-def print_clock(clock):
-    with numpy.printoptions(precision=3, suppress=True):
-        print(
-            clock.name, '\n',
-            "\t| r_hand polar", [clock.r_hand, clock.phi_r_hand], '\n',
-            "\t| r_hand cartesian", [clock.x_r_hand, clock.y_r_hand], '\n',
-            "\t| direction", clock.direction, '\n',
-            "\t| speed", clock.speed_magnitude, '\n',
-            "\t| relative speed", clock.speed_magnitude_relative, '\n',
-            "\t| p_clock", clock.p_clock, " | p_hand", clock.p_hand, '\n',
-            "\t| scale", clock.scale
-        )
-
-def draw_clock(clock, image):
-    color = (0,0,128)
-    cv2.circle(image, clock.p_clock, int(clock.r_clock), color, 1)
-    cv2.circle(image, clock.p_hand, 4, color, -1)
-    cv2.line(image, clock.p_clock, clock.p_hand, color, 2)
-    cv2.circle(image, clock.p_clock, 4, color, -1)
-
-    if clock.drawn_gesture_catcher:
-        for drawn_gesture_catcher in clock.drawn_gesture_catcher:
-            added_image = cv2.addWeighted(
-                image, 1, drawn_gesture_catcher.gesture_image, 0.5, 0
-            )
-            image = added_image
-    
-    return image
 
 def draw_mediapipe_results(mp_results, image):
     mp_solutions = mediapipe.solutions
