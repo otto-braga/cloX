@@ -1,5 +1,6 @@
 import time
 from threading import Thread
+import socketserver
 
 import numpy
 import cv2
@@ -29,10 +30,8 @@ class Clock:
 
         is_clipped = True,
 
-        osc_send_ip = '127.0.0.1',
-        osc_send_port = 4747,
-        osc_rcv_ip = '127.0.0.1',
-        osc_rcv_port = 4748
+        osc_send = [{"ip": "127.0.0.1", "port": 4747}],
+        osc_rcv = None
     ):
         self.name = name
 
@@ -87,7 +86,7 @@ class Clock:
 
         self.depth_clock_name = depth_clock_name
         self.depth_flip = depth_flip
-        self.depth_clock_r = 1.0
+        self.depth_clock_r = 0.0
         self.is_depth_clock = is_depth_clock
 
         self.speed_tracked_point = numpy.zeros([2], dtype=float)
@@ -118,20 +117,22 @@ class Clock:
 
         self.is_clipped = is_clipped
 
-        self.osc_client = udp_client.SimpleUDPClient(
-            osc_send_ip, osc_send_port
-        )
+        self.osc_client = [
+            udp_client.SimpleUDPClient(
+                client["ip"],
+                client["port"]
+            ) for client in osc_send
+        ]
 
-        self.osc_dispatcher = dispatcher.Dispatcher()
-        self._osc_receive()
-        self.osc_server = osc_server.ThreadingOSCUDPServer(
-            (osc_rcv_ip, osc_rcv_port), self.osc_dispatcher
-        )
+        self.osc_rcv = osc_rcv
+        if osc_rcv != None:
+            for address in osc_rcv:
+                self.osc_rcv_ip = address["ip"]
+                self.osc_rcv_port = address["port"]
+        
+        self.osc_dispatcher = None
+        self.osc_server = None
         self.osc_server_thread = None
-        # self.osc_server_thread = Thread(
-        #     target = self.osc_server.serve_forever,
-        #     args = ()
-        # ).start()
 
     # Auxiliary methods.
     # ------------------
@@ -168,9 +169,6 @@ class Clock:
             mp.landmark[i_point_A[0]][i_point_A[1]],
             mp.landmark[i_point_B[0]][i_point_B[1]]
         )
-
-    def _set_depth(self, address, args):
-        self.depth_clock_r = -args if self.depth_flip else args
 
     # Main methods.
     # -------------
@@ -255,6 +253,7 @@ class Clock:
             self.scale_ratio_A = self.k_m_ref_list[0] / self.k_m_ref_list[1]
             self.scale_ratio_B = self.k_m_ref_list[2] / self.k_m_ref_list[3]
 
+            self.enable_calibration = False
             self.is_calibrated = True
 
     def _scaling(self):
@@ -287,7 +286,7 @@ class Clock:
 
     def _normalization(self):
         self.p_norm = self.p_tran / self.r_clock
-        self.p_norm[1] = -self.p_norm[1]
+        # self.p_norm[1] = -self.p_norm[1]
 
         self.x_r_hand = self.p_norm[0]
         self.y_r_hand = self.p_norm[1]
@@ -340,7 +339,7 @@ class Clock:
     def _speed_tracking_relative(self, mp):
         self.position_history_relative[0] = self.speed_tracked_point_relative
         self.speed_tracked_point_relative = numpy.clip(
-            self.p_norm, [0,0], mp.image_size
+            self.p_norm, [-1,-1], [1,1]
         )
         self.position_history_relative[1] = self.speed_tracked_point_relative
         self.position_abs_history_relative = self.position_history_relative.astype(int)
@@ -435,17 +434,30 @@ class Clock:
 
         for address, value in msg.items():
             # print(address, value)
-            self.osc_client.send_message(address, value)
+            for client in self.osc_client:
+                client.send_message(address, value)
 
-    def _osc_receive(self):
-        self.osc_dispatcher.map('/cloX/' + self.depth_clock_name + '/x_r_hand', self._set_depth)
+    def _osc_map(self):
+        self.osc_dispatcher.map('/cloX/' + self.depth_clock_name + '/x_r_hand', self._osc_receive_depth)
+
+    def _osc_receive_depth(self, address, args):
+        self.depth_clock_r = -args if self.depth_flip else args
 
     def _osc_server_init(self):
-        if self.scale_mode == 4 and self.osc_server_thread == None:
-            self.osc_server_thread = Thread(
-                target = self.osc_server.serve_forever,
-                args = ()
-            ).start()
+        if self.scale_mode == 4 and self.osc_rcv != None:
+            if self.osc_dispatcher == None:
+                self.osc_dispatcher = dispatcher.Dispatcher()
+                self._osc_map()
+            if self.osc_server == None:
+                socketserver.UDPServer.allow_reuse_address = True
+                self.osc_server = osc_server.ThreadingOSCUDPServer(
+                    (self.osc_rcv_ip, self.osc_rcv_port), self.osc_dispatcher
+                )
+            if self.osc_server_thread == None:
+                self.osc_server_thread = Thread(
+                    target = self.osc_server.serve_forever,
+                    args = ()
+                ).start()
 
     def print_clock(self):
         with numpy.printoptions(precision=3, suppress=True):
@@ -457,6 +469,7 @@ class Clock:
                 "\t| speed", self.speed_magnitude, '\n',
                 "\t| relative speed", self.speed_magnitude_relative, '\n',
                 "\t| p_clock", self.p_clock, " | p_hand", self.p_hand, '\n',
+                "\t| p_norm", self.p_norm, '\n',
                 "\t| scale", self.scale
             )
 

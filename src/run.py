@@ -32,20 +32,16 @@ def main():
     min_detect_conf = project['setup']['mp_min_detect_conf']
     min_track_conf = project['setup']['mp_min_track_conf']
 
-    osc_send_ip = project['setup']['osc_send_ip']
-    osc_send_port = project['setup']['osc_send_port']
-    osc_rcv_ip = project['setup']['osc_rcv_ip']
-    osc_rcv_port = project['setup']['osc_rcv_port']
+    osc_send = project['setup']['osc_send']
+    osc_rcv = project['setup']['osc_rcv'] if "osc_rcv" in project['setup'] else None
 
     for clock in project['clocks']:
         clock_new = Clock(
             name = clock["name"],
             i_p_clock = clock["i_p_clock"],
             i_p_hand = clock["i_p_hand"],
-            osc_send_ip = osc_send_ip,
-            osc_send_port = osc_send_port,
-            osc_rcv_ip = osc_rcv_ip,
-            osc_rcv_port = osc_rcv_port
+            osc_send = osc_send,
+            osc_rcv = osc_rcv
         )
 
         if "scale_mode" in clock:
