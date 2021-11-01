@@ -8,7 +8,8 @@ import mediapipe
 
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
-from Clock import Clock, DrawnGestureCatcher
+from Clock import Clock
+from ClockClasses import ClockList
 
 import osc
 
@@ -17,10 +18,7 @@ def main():
     # ------------
 
     project_path = sys.argv[1]
-
     project = None
-    clocks = []
-
     with open(project_path) as project_file:
         project = json.load(project_file)
 
@@ -32,63 +30,7 @@ def main():
     min_detect_conf = project['setup']['mp_min_detect_conf']
     min_track_conf = project['setup']['mp_min_track_conf']
 
-    osc_send = project['setup']['osc_send']
-    osc_rcv = project['setup']['osc_rcv'] if "osc_rcv" in project['setup'] else None
-
-    for clock in project['clocks']:
-        clock_new = Clock(
-            name = clock["name"],
-            i_p_clock = clock["i_p_clock"],
-            i_p_hand = clock["i_p_hand"],
-            osc_send = osc_send,
-            osc_rcv = osc_rcv
-        )
-
-        if "scale_mode" in clock:
-            clock_new.scale_mode = clock["scale_mode"]
-
-            if 0 < clock["scale_mode"] < 3:
-                clock_new.i_p_ref_A = clock["i_p_ref_A"]
-                clock_new.i_p_ref_B = clock["i_p_ref_B"]
-                if clock["scale_mode"] == 2:
-                    clock_new.i_p_ref_C = clock["i_p_ref_C"]
-                    clock_new.i_p_ref_D = clock["i_p_ref_D"]
-            elif clock['scale_mode'] == 4:
-                clock_new.depth_clock_name = clock['depth_clock_name']
-                if 'depth_flip' in clock:
-                    clock_new.depth_flip = bool(clock['depth_flip'])
-        else:
-            clock_new.scale_mode = 3
-
-        if "drawn_gesture_catcher" in clock:
-            clock_new.drawn_gesture_catcher = []
-
-            for drawn_gesture_catcher in clock["drawn_gesture_catcher"]:
-                drawn_gesture_catcher_new = DrawnGestureCatcher(
-                    clock = clock_new,
-                    name = drawn_gesture_catcher['name'],
-                    threshold_catch = drawn_gesture_catcher['threshold_catch'],
-                    threshold_release = (
-                        drawn_gesture_catcher['threshold_release']
-                    ),
-                    speed_history_size = (
-                        drawn_gesture_catcher['speed_history_size']
-                    )
-                )
-
-                clock_new.drawn_gesture_catcher.append(
-                    drawn_gesture_catcher_new
-                )
-
-        if "is_clipped" in clock:
-            clock_new.is_clipped = bool(clock["is_clipped"])
-        else:
-            clock_new.is_clipped = True
-
-        if "is_depth_clock" in clock:
-            clock_new.is_depth_clock = bool(clock['is_depth_clock'])
-
-        clocks.append(clock_new)
+    clocks = ClockList().load_from_project(project)
 
     # initialization
     # --------------
