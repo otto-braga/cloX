@@ -8,8 +8,7 @@ import mediapipe
 
 from VideoStream import VideoStream
 from MediapipeParsed import MediapipeParsed
-from Clock import Clock
-from ClockClasses import ClockList
+import Clock
 
 import osc
 
@@ -30,7 +29,7 @@ def main():
     min_detect_conf = project['setup']['mp_min_detect_conf']
     min_track_conf = project['setup']['mp_min_track_conf']
 
-    clocks = ClockList().load_from_project(project)
+    clocks = Clock.load_from_project(project)
 
     # initialization
     # --------------

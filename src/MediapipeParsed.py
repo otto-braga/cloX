@@ -3,14 +3,14 @@ import numpy
 class MediapipeParsed:
     def __init__(self, image_size):
         self.image_size = image_size
-        self.initial_value = -1
+        self.initial_value = -1.0
 
         self.landmark = numpy.array(
             [
-                numpy.full([33,2], self.initial_value, dtype=int),
-                numpy.full([21,2], self.initial_value, dtype=int),
-                numpy.full([21,2], self.initial_value, dtype=int),
-                #numpy.full([468,2], self.initial_value, dtype=int)
+                numpy.full([33,2], self.initial_value, dtype=float),
+                numpy.full([21,2], self.initial_value, dtype=float),
+                numpy.full([21,2], self.initial_value, dtype=float),
+                #numpy.full([468,2], self.initial_value, dtype=float)
             ],
             dtype=object
         )
@@ -55,5 +55,5 @@ class MediapipeParsed:
                 self.solution[i] = solution[i]
                 for j in range(len(self.landmark[i])):
                     self.landmark[i][j] = numpy.full(
-                        [2], self.initial_value, dtype=int
+                        [2], self.initial_value, dtype=float
                     )

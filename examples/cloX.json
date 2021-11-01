@@ -1,15 +1,17 @@
 {
     "setup": {
-        "camera_id": "http://192.168.2.100:4747/video",
+        "camera_id": 0,
         "camera_width": 640,
         "camera_height": 480,
         "camera_fps": 60,
         "mp_min_detect_conf": 0.5,
         "mp_min_track_conf": 0.5,
-        "osc_send_ip": "127.0.0.1",
-        "osc_send_port": 4747,
-        "osc_rcv_ip": "127.0.0.1",
-        "osc_rcv_port": 4748
+        "osc_send": [
+            {"ip": "127.0.0.1", "port": 4747}
+        ],
+        "osc_rcv": [
+            {"ip": "127.0.0.1", "port": 4748}
+        ]
     },
     "clocks": [
         {
@@ -17,10 +19,6 @@
             "i_p_clock": [0,11,0,12],
             "i_p_hand": [0,19,-1,-1],
             "scale_mode": 3,
-            "i_p_ref_A": [0,0],
-            "i_p_ref_B": [0,0],
-            "i_p_ref_C": [0,0],
-            "i_p_ref_D": [0,0],
             "drawn_gesture_catcher": [
                 {
                     "name": "A",
@@ -40,8 +38,7 @@
                     "threshold_release": 6,
                     "speed_history_size": 10
                 }
-            ],
-            "is_clipped": 1
+            ]
         }
     ]
 }

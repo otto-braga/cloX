@@ -21,6 +21,7 @@ class Clock:
 
         scaling_mode: float = 3,
         i_p_ref: list = [(0,0), (0,0), (0,0), (0,0)],
+
         depth_clock_name: str = '',
         depth_flip: bool = False,
         is_depth_clock: bool = False,
@@ -62,7 +63,7 @@ class Clock:
             dtype=float
         )
 
-        self.p_hand = ClockPHand(self)
+        self.p_hand = ClockPHand()
 
         self.enable_calibration = False
         self.is_calibrated = False
@@ -238,7 +239,7 @@ class Clock:
         self.p_hand.x = p_hand_norm[0]
         self.p_hand.y = p_hand_norm[1]
 
-        self.p_hand.r = numpy.linalg.norm(self.p_hand_norm)
+        self.p_hand.r = numpy.linalg.norm(p_hand_norm)
 
         self.p_hand.angle = numpy.degrees(
             numpy.arctan2(self.p_hand.x, self.p_hand.y)
@@ -268,15 +269,13 @@ class Clock:
 
     def draw_clock(self, image: numpy.ndarray) -> None:
         color = (0,0,128)
-        cv2.circle(image, self.p_clock_abs, int(self.r_clock), color, 1)
-        # cv2.circle(image, self.p_hand_abs, 4, color, -1)
-        cv2.line(image, self.p_clock_abs, self.p_hand_abs, color, 2)
-        # cv2.circle(image, self.p_clock_abs, 4, color, -1)
+        cv2.circle(image, self.p_clock_abs.astype(int), int(self.r_clock), color, 1)
+        cv2.line(image, self.p_clock_abs.astype(int), self.p_hand_abs.astype(int), color, 2)
 
         if self.drawn_gestures:
-            for drawn_gesture_catcher in self.drawn_gestures:
+            for drawn_gesture in self.drawn_gestures:
                 added_image = cv2.addWeighted(
-                    image, 1, drawn_gesture_catcher.gesture_image, 0.5, 0
+                    image, 1, drawn_gesture.image, 0.5, 0
                 )
                 image = added_image
         
@@ -304,11 +303,7 @@ class Clock:
 
 
 class ClockPHand:
-    def __init__(
-        self,
-        clock: Clock = None
-    ):
-        self.clock = None
+    def __init__(self):
         self.r = 0.0
         self.angle = 0.0
         self.x = 0.0
@@ -328,8 +323,8 @@ class ClockTracker:
     ):
         self.clock = clock
 
-        self.tracked_point = numpy.zeros([2], dtype=float)
-        self.position = numpy.full([2, 2], numpy.zeros([2], dtype=int))
+        # self.tracked_point = numpy.zeros([2], dtype=float)
+        self.position = numpy.full([2, 2], numpy.zeros([2], dtype=float))
         self.position_abs = numpy.full([2, 2], numpy.zeros([2], dtype=int))
         self.direction = numpy.zeros([2], dtype=float)
         self.instant = numpy.full([2], time.monotonic_ns(), dtype = int)
@@ -337,19 +332,11 @@ class ClockTracker:
         self.speed = 0.0
 
     def _speed_tracking(self):
-        self.position[0] = self.tracked_point
+        self.position[0] = self.position[1]
+        self.position[1] = [self.clock.p_hand.x, self.clock.p_hand.y]
 
-        self.tracked_point = numpy.clip(
-            [self.clock.p_hand.x, self.clock.p_hand.y],
-            [-1,-1] if self.clock.is_calibrated else [0,0],
-            [1,1] if self.clock.is_calibrated else self.clock.mediapipe_results.image_size
-        )
-
-        self.position[1] = self.tracked_point
-        self.position_abs = self.position.astype(int)
-        self.position = (
-            self.position / self.clock.mediapipe_results.image_size
-        )
+        self.position_abs[0] = self.position_abs[1]
+        self.position_abs[1] = self.clock.p_hand_abs
 
         self.instant[0] = self.instant[1]
         self.instant[1] = time.monotonic_ns()
@@ -366,7 +353,7 @@ class ClockTracker:
             / (self.instant[1] - self.instant[0])
         )
         self.speed = numpy.linalg.norm(self.velocity) * (10 ** 10)
-        self.speed = self.speed / self.scale
+        self.speed = self.speed / self.clock.scale
 
         self.clock.p_hand.direction = self.direction
         self.clock.p_hand.velocity = self.velocity
@@ -390,7 +377,7 @@ class ClockOSCHandler:
 
         self.osc_clients = osc_clients
         if osc_clients != None:
-            self.osc_client = [
+            self.osc_clients = [
                 udp_client.SimpleUDPClient(
                     address["ip"],
                     address["port"]
@@ -414,62 +401,62 @@ class ClockOSCHandler:
         msg = {}
         address = '/cloX/' + self.clock.name + '/'
         
-        if self.is_depth_clock:
+        if self.clock.is_depth_clock:
             msg[address + 'x'] = self.clock.x_r_hand
         else:
-            msg[address + 'r'] = self.clock.r_hand
-            msg[address + 'angle'] = self.clock.phi_r_hand
-            msg[address + 'x'] = self.clock.x_r_hand
-            msg[address + 'y'] = self.clock.y_r_hand
+            msg[address + 'r'] = self.clock.p_hand.r
+            msg[address + 'angle'] = self.clock.p_hand.angle
+            msg[address + 'x'] = self.clock.p_hand.x
+            msg[address + 'y'] = self.clock.p_hand.y
             msg[address + 'scale'] = self.clock.scale
-            msg[address + 'speed'] = self.clock.tracker.speed
-            msg[address + 'speed_average'] = self.clock.tracker.speed_average
-            msg[address + 'direction_x'] = self.clock.tracker.direction[0]
-            msg[address + 'direction_y'] = self.clock.tracker.direction[1]
+            msg[address + 'speed'] = self.clock.p_hand.speed
+            msg[address + 'speed_average'] = self.clock.p_hand.speed_average
+            msg[address + 'direction_x'] = self.clock.p_hand.direction[0]
+            msg[address + 'direction_y'] = self.clock.p_hand.direction[1]
 
             if self.clock.drawn_gestures:
-                for drawn_gesture_catcher in self.clock.drawn_gestures:
+                for drawn_gesture in self.clock.drawn_gestures:
                     address_g = (
                         address
                         + 'drawn_gesture/'
-                        + drawn_gesture_catcher.name
+                        + drawn_gesture.name
                         + '/'
                     )
 
                     msg[address_g + 'is_catching'] = (
-                        int(drawn_gesture_catcher.is_catching)
+                        int(drawn_gesture.is_catching)
                     )
 
                     msg[address_g + 'threshold_catch'] = (
-                        drawn_gesture_catcher.threshold_catch
+                        drawn_gesture.threshold_catch
                     )
 
                     msg[address_g + 'threshold_release'] = (
-                        drawn_gesture_catcher.threshold_release
+                        drawn_gesture.threshold_release
                     )
 
                     msg[address_g + 'speed_history_size'] = (
-                        drawn_gesture_catcher.speed_history_size
+                        drawn_gesture.speed_history_size
                     )
 
                     if (
-                        not drawn_gesture_catcher.is_catching
-                        and len(drawn_gesture_catcher.gesture_points)
+                        not drawn_gesture.is_catching
+                        and len(drawn_gesture.points)
                     ):
-                        length = len(drawn_gesture_catcher.gesture_points)
+                        length = len(drawn_gesture.points)
 
-                        msg[address_g + 'gesture_points_length'] = length
+                        msg[address_g + 'points_length'] = length
 
                         for i in range(length):
-                            msg[address_g + 'gesture_point_x_' + str(i)] = (
-                                int(drawn_gesture_catcher.gesture_points[i,0])
+                            msg[address_g + 'point_x_' + str(i)] = (
+                                int(drawn_gesture.points[i,0])
                             )
-                            msg[address_g + 'gesture_point_y_' + str(i)] = (
-                                int(drawn_gesture_catcher.gesture_points[i,1])
+                            msg[address_g + 'point_y_' + str(i)] = (
+                                int(drawn_gesture.points[i,1])
                             )
 
         for address, value in msg.items():
-            # print(address, value)
+            print(address, value)
             for client in self.osc_clients:
                 client.send_message(address, value)
             
@@ -480,7 +467,7 @@ class ClockOSCHandler:
         )
     
     def _osc_receive_depth(self, address: str, args: float) -> None:
-        self.depth_clock_r = -args if self.depth_flip else args
+        self.depth_clock_r = -args if self.clock.depth_flip else args
 
     def _osc_server_init(self) -> None:
         if self.clock.scaling_mode == 4 and self.osc_receivers != None:
@@ -577,15 +564,15 @@ class ClockDrawnGesture:
             if len(self.points) < 1:
                 self.points = numpy.array(
                     [
-                        self.clock.position_abs_history[0],
-                        self.clock.position_abs_history[1]
+                        self.clock.tracker.position_abs[0],
+                        self.clock.tracker.position_abs[1]
                     ]
                 )
             else:
                 self.points = numpy.concatenate(
                     (
                         self.points,
-                        [self.clock.position_abs_history[1]]
+                        [self.clock.tracker.position_abs[1]]
                     ),
                     axis=0
                 )
@@ -617,8 +604,8 @@ class ClockDrawnGesture:
 
         cv2.line(
             self.image,
-            self.clock.position_abs_history[0] + (0, index * line_width),
-            self.clock.position_abs_history[1] + (0, index * line_width),
+            self.clock.tracker.position_abs[0] + (0, index * line_width),
+            self.clock.tracker.position_abs[1] + (0, index * line_width),
             color,
             int(line_width / 2)
         )
@@ -635,64 +622,62 @@ class ClockDrawnGesture:
 
 
 
-class ClockList:
-    def __init___(self):
-        self.clocks = []
-    
-    def load_from_project(self, project: dict) -> list:
-        for clock in project['clocks']:
-            clock_new = Clock(
-                name = clock["name"],
-                i_p_clock = clock["i_p_clock"],
-                i_p_hand = clock["i_p_hand"],
-                osc_send = project['setup']['osc_send'] if "osc_send" in project['setup'] else None,
-                osc_rcv = project['setup']['osc_rcv'] if "osc_rcv" in project['setup'] else None
-            )
+def load_from_project(project: dict) -> list:
+    clocks = []
 
-            if "scale_mode" in clock:
-                clock_new.scaling_mode = clock["scale_mode"]
+    for clock in project['clocks']:
+        clock_new = Clock(
+            name = clock["name"],
+            i_p_clock = clock["i_p_clock"],
+            i_p_hand = clock["i_p_hand"],
+            osc_send = project['setup']['osc_send'] if "osc_send" in project['setup'] else None,
+            osc_rcv = project['setup']['osc_rcv'] if "osc_rcv" in project['setup'] else None
+        )
 
-                if 0 < clock["scale_mode"] < 3:
-                    clock_new.i_p_ref[0] = clock["i_p_ref_A"]
-                    clock_new.i_p_ref[1] = clock["i_p_ref_B"]
-                    if clock["scale_mode"] == 2:
-                        clock_new.i_p_ref[2] = clock["i_p_ref_C"]
-                        clock_new.i_p_ref[3] = clock["i_p_ref_D"]
-                elif clock['scale_mode'] == 4:
-                    clock_new.depth_clock_name = clock['depth_clock_name']
-                    if 'depth_flip' in clock:
-                        clock_new.depth_flip = bool(clock['depth_flip'])
-            else:
-                clock_new.scaling_mode = 3
+        if "scale_mode" in clock:
+            clock_new.scaling_mode = clock["scale_mode"]
 
-            if "drawn_gesture_catcher" in clock:
-                clock_new.drawn_gestures = []
+            if 0 < clock["scale_mode"] < 3:
+                clock_new.i_p_ref[0] = clock["i_p_ref_A"]
+                clock_new.i_p_ref[1] = clock["i_p_ref_B"]
+                if clock["scale_mode"] == 2:
+                    clock_new.i_p_ref[2] = clock["i_p_ref_C"]
+                    clock_new.i_p_ref[3] = clock["i_p_ref_D"]
+            elif clock['scale_mode'] == 4:
+                clock_new.depth_clock_name = clock['depth_clock_name']
+                if 'depth_flip' in clock:
+                    clock_new.depth_flip = bool(clock['depth_flip'])
+        else:
+            clock_new.scaling_mode = 3
 
-                for drawn_gesture in clock["drawn_gesture_catcher"]:
-                    drawn_gesture_new = ClockDrawnGesture(
-                        clock = clock_new,
-                        name = drawn_gesture['name'],
-                        threshold_catch = drawn_gesture['threshold_catch'],
-                        threshold_release = (
-                            drawn_gesture['threshold_release']
-                        ),
-                        speed_history_size = (
-                            drawn_gesture['speed_history_size']
-                        )
+        if "drawn_gesture_catcher" in clock:
+            clock_new.drawn_gestures = []
+
+            for drawn_gesture in clock["drawn_gesture_catcher"]:
+                drawn_gesture_new = ClockDrawnGesture(
+                    clock = clock_new,
+                    name = drawn_gesture['name'],
+                    threshold_catch = drawn_gesture['threshold_catch'],
+                    threshold_release = (
+                        drawn_gesture['threshold_release']
+                    ),
+                    speed_history_size = (
+                        drawn_gesture['speed_history_size']
                     )
+                )
 
-                    clock_new.drawn_gestures.append(
-                        drawn_gesture_new
-                    )
+                clock_new.drawn_gestures.append(
+                    drawn_gesture_new
+                )
 
-            if "is_clipped" in clock:
-                clock_new.is_clipped = bool(clock["is_clipped"])
-            else:
-                clock_new.is_clipped = True
+        if "is_clipped" in clock:
+            clock_new.is_clipped = bool(clock["is_clipped"])
+        else:
+            clock_new.is_clipped = True
 
-            if "is_depth_clock" in clock:
-                clock_new.is_depth_clock = bool(clock['is_depth_clock'])
+        if "is_depth_clock" in clock:
+            clock_new.is_depth_clock = bool(clock['is_depth_clock'])
 
-            self.clocks.append(clock_new)
+        clocks.append(clock_new)
 
-        return self.clocks
+    return clocks
