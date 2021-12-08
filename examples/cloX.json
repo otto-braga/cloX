@@ -1,6 +1,6 @@
 {
     "setup": {
-        "camera_id": 0,
+        "camera_id": "http://192.168.1.73:4747/video",
         "camera_width": 640,
         "camera_height": 480,
         "camera_fps": 60,

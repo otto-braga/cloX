@@ -402,7 +402,7 @@ class ClockOSCHandler:
         address = '/cloX/' + self.clock.name + '/'
         
         if self.clock.is_depth_clock:
-            msg[address + 'x'] = self.clock.x_r_hand
+            msg[address + 'x'] = self.clock.p_hand.x
         else:
             msg[address + 'r'] = self.clock.p_hand.r
             msg[address + 'angle'] = self.clock.p_hand.angle
@@ -456,7 +456,7 @@ class ClockOSCHandler:
                             )
 
         for address, value in msg.items():
-            print(address, value)
+            # print(address, value)
             for client in self.osc_clients:
                 client.send_message(address, value)
             

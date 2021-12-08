@@ -43,10 +43,37 @@ def main():
     print(video.width, video.height)
     print(video.fps)
 
-    mp_holistic =  mediapipe.solutions.holistic.Holistic(
+    # mp_holistic =  mediapipe.solutions.holistic.Holistic(
+    #     min_detection_confidence = min_detect_conf,
+    #     min_tracking_confidence = min_track_conf
+    # )
+
+    mp_pose =  mediapipe.solutions.pose.Pose(
         min_detection_confidence = min_detect_conf,
         min_tracking_confidence = min_track_conf
     )
+    mp_hands =  mediapipe.solutions.hands.Hands(
+        min_detection_confidence = min_detect_conf,
+        min_tracking_confidence = min_track_conf
+    )
+
+    is_mp_hands = False
+    is_mp_pose = False
+    for clock in clocks:
+        index_list = [
+            clock.i_p_clock[0], clock.i_p_clock[2],
+            clock.i_p_hand[0], clock.i_p_hand[2],
+        ]
+        for i_p_ref in clock.i_p_ref:
+            index_list.append(i_p_ref[0])
+        if any([index == 0 for index in index_list]):
+            is_mp_pose = True
+        if (
+            any([index == 1 for index in index_list])
+            or any([index == 2 for index in index_list])
+        ):
+            is_mp_hands = True
+        print([index_list == 0])
 
     mp_parsed = MediapipeParsed([camera_width, camera_height])
 
@@ -85,10 +112,21 @@ def main():
         # ---------
 
         image.flags.writeable = False
-        mp_results = mp_holistic.process(image)
+        mp_pose_results = mp_pose.process(image) if is_mp_pose else None
+        mp_hands_results = mp_hands.process(image) if is_mp_hands else None
         image.flags.writeable = True
 
-        mp_parsed.update(mp_results, True, False)
+        print(is_mp_pose)
+
+        mp_parsed.update(
+            [
+                mp_pose_results.pose_landmarks,
+                mp_parsed.solution[1],
+                mp_parsed.solution[2]
+            ],
+            True,
+            False
+        )
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
 
@@ -156,7 +194,8 @@ def main():
     # quit
     # ----
     
-    mp_holistic.close()
+    if is_mp_pose: mp_pose.close()
+    if is_mp_hands: mp_hands.close()
     video.stop = True
     for clock in clocks:
         if clock.osc_server_thread:
