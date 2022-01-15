@@ -6,7 +6,11 @@ activate it
 > source /path/bin/activate
 
 # install dependencies
+basic
 > python -m pip install mediapipe python-osc
+
+for drawn gesture classification
+> python -m pip install keras tensorflow
 
 # clone repository
 clone

@@ -5,6 +5,7 @@ import socketserver
 import numpy
 import cv2
 from pythonosc import udp_client, dispatcher, osc_server
+import keras
 
 from MediapipeParsed import MediapipeParsed
 
@@ -81,6 +82,10 @@ class Clock:
         self.tracker = ClockTracker(self)
 
         self.drawn_gestures = drawn_gestures
+        self.drawn_gesture_classifier_model = None
+        self.drawn_gesture_class = None
+        self.drawn_gesture_classes = None
+        self.drawn_gesture_classif_acc = None
 
         self.osc_handler = ClockOSCHandler(
             self,
@@ -264,7 +269,9 @@ class Clock:
                 "\t| direction", self.tracker.direction, '\n',
                 "\t| speed", self.tracker.speed, '\n',
                 "\t| p_clock_abs", self.p_clock_abs, " | p_hand_abs", self.p_hand_abs, '\n',
-                "\t| scale", self.scale
+                "\t| scale", self.scale, '\n',
+                "\t| gesture_class", self.drawn_gestures[0].gesture_class, '\n',
+                '\t| classification_accuracy', self.drawn_gestures[0].gesture_classif_acc
             )
 
     def draw_clock(self, image: numpy.ndarray) -> None:
@@ -530,6 +537,10 @@ class ClockDrawnGesture:
         self.image = None
         self.points = numpy.array([])
 
+        self.gesture_class = None
+        self.gesture_classes = None
+        self.gesture_classif_acc = None
+
     def _scale(self) -> None:
         self.line_width = (
             int(
@@ -610,6 +621,59 @@ class ClockDrawnGesture:
             int(line_width / 2)
         )
 
+    def _classify(self):
+        save_img_files = True
+
+        name = self.name
+        image = self.image
+        image = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY).astype('uint8')
+        if save_img_files: cv2.imwrite("gesture/gesture_" + name + "-00.png", image)
+        rect = [0,0,0,0]
+        border = int(self.line_width / 2)
+        rect[0] = (
+            numpy.clip(
+                numpy.min(self.points[:, 0]) - border,
+                0,
+                self.image_size[0] - 1
+            )
+        )
+        rect[1] = (
+            numpy.clip(
+                numpy.max(self.points[:, 0]) + border,
+                0,
+                self.image_size[0] - 1
+            )
+        )
+        rect[2] = (
+            numpy.clip(
+                numpy.min(self.points[:, 1]) - border,
+                0,
+                self.image_size[1] - 1
+            )
+        )
+        rect[3] = (
+            numpy.clip(
+                numpy.max(self.points[:, 1]) + border,
+                0,
+                self.image_size[1] - 1
+            )
+        )
+        image = image[rect[2]:rect[3], rect[0]:rect[1]]
+        if save_img_files: cv2.imwrite("gesture/gesture_" + name + "-01-cropped.png", image)
+        image = cv2.resize(image, (28,28))
+        if save_img_files: cv2.imwrite("gesture/gesture_" + name + "-02-resized.png", image)
+        image = image / 255
+        if save_img_files: cv2.imwrite(
+            "gesture/gesture_" + name + "-03-normalized.png", image
+        )
+        image = image.reshape(1,28,28,1)
+
+        if self.clock.drawn_gesture_classifier_model != None:
+            res = self.clock.drawn_gesture_classifier_model.predict([image])[0]
+            self.gesture_class = numpy.argmax(res)
+            self.gesture_classes = res
+            self.gesture_classif_acc = max(res)
+
     def update(self, clock: Clock) -> None:
         self.clock = clock
         if self.image_size == None:
@@ -618,6 +682,7 @@ class ClockDrawnGesture:
 
         self._scale()
         self._catch()
+        self._classify()
 
 
 
@@ -668,6 +733,11 @@ def load_from_project(project: dict) -> list:
 
                 clock_new.drawn_gestures.append(
                     drawn_gesture_new
+                )
+
+            if "classifier_model_path" in clock:
+                clock_new.drawn_gesture_classifier_model = keras.models.load_model(
+                    clock['classifier_model_path']
                 )
 
         if "is_clipped" in clock:

@@ -73,7 +73,7 @@ def main():
             or any([index == 2 for index in index_list])
         ):
             is_mp_hands = True
-        print([index_list == 0])
+        # print([index_list == 0])
 
     mp_parsed = MediapipeParsed([camera_width, camera_height])
 
@@ -116,7 +116,7 @@ def main():
         mp_hands_results = mp_hands.process(image) if is_mp_hands else None
         image.flags.writeable = True
 
-        print(is_mp_pose)
+        # print(is_mp_pose)
 
         mp_parsed.update(
             [
@@ -197,9 +197,9 @@ def main():
     if is_mp_pose: mp_pose.close()
     if is_mp_hands: mp_hands.close()
     video.stop = True
-    for clock in clocks:
-        if clock.osc_server_thread:
-            clock.osc_server_thread.join()
+    # for clock in clocks:
+    #     if clock.osc_server_thread:
+    #         clock.osc_server_thread.join()
     cv2.destroyAllWindows()
 
 def draw_mediapipe_results(mp_results, image):

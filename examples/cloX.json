@@ -38,7 +38,8 @@
                     "threshold_release": 6,
                     "speed_history_size": 10
                 }
-            ]
+            ],
+            "classifier_model_path": "gesture/model.h5"
         }
     ]
 }
