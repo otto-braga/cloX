@@ -1,0 +1,239 @@
+2022-01-18 23:47:48.675197: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory
+2022-01-18 23:47:48.675220: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+2022-01-18 23:47:49.782969: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcuda.so.1'; dlerror: libcuda.so.1: cannot open shared object file: No such file or directory
+2022-01-18 23:47:49.782992: W tensorflow/stream_executor/cuda/cuda_driver.cc:269] failed call to cuInit: UNKNOWN ERROR (303)
+2022-01-18 23:47:49.783008: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:156] kernel driver does not appear to be running on this host (5566-debian): /proc/driver/nvidia/version does not exist
+2022-01-18 23:47:49.783186: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d (Conv2D)             (1, 28, 28, 6)            156       
+                                                                 
+ average_pooling2d (AverageP  (1, 14, 14, 6)           0         
+ ooling2D)                                                       
+                                                                 
+ conv2d_1 (Conv2D)           (1, 10, 10, 16)           2416      
+                                                                 
+ average_pooling2d_1 (Averag  (1, 5, 5, 16)            0         
+ ePooling2D)                                                     
+                                                                 
+ flatten (Flatten)           (1, 400)                  0         
+                                                                 
+ dense (Dense)               (1, 120)                  48120     
+                                                                 
+ dense_1 (Dense)             (1, 84)                   10164     
+                                                                 
+ dense_2 (Dense)             (1, 10)                   850       
+                                                                 
+=================================================================
+Total params: 61,706
+Trainable params: 61,706
+Non-trainable params: 0
+_________________________________________________________________
+Epoch 1/40
+235/235 [==============================] - ETA: 0s - loss: 2.0268 - accuracy: 0.2937  
+Epoch 00001: saving model to training/weights-epoch_0001.ckpt
+235/235 [==============================] - 12s 49ms/step - loss: 2.0268 - accuracy: 0.2937
+Epoch 2/40
+234/235 [============================>.] - ETA: 0s - loss: 0.5780 - accuracy: 0.8441 
+Epoch 00002: saving model to training/weights-epoch_0002.ckpt
+235/235 [==============================] - 17s 73ms/step - loss: 0.5778 - accuracy: 0.8441
+Epoch 3/40
+234/235 [============================>.] - ETA: 0s - loss: 0.3234 - accuracy: 0.9062 
+Epoch 00003: saving model to training/weights-epoch_0003.ckpt
+235/235 [==============================] - 17s 73ms/step - loss: 0.3233 - accuracy: 0.9062
+Epoch 4/40
+234/235 [============================>.] - ETA: 0s - loss: 0.2469 - accuracy: 0.9261 
+Epoch 00004: saving model to training/weights-epoch_0004.ckpt
+235/235 [==============================] - 17s 72ms/step - loss: 0.2468 - accuracy: 0.9261
+Epoch 5/40
+234/235 [============================>.] - ETA: 0s - loss: 0.2019 - accuracy: 0.9391 
+Epoch 00005: saving model to training/weights-epoch_0005.ckpt
+235/235 [==============================] - 17s 71ms/step - loss: 0.2018 - accuracy: 0.9391
+Epoch 6/40
+234/235 [============================>.] - ETA: 0s - loss: 0.1707 - accuracy: 0.9485 
+Epoch 00006: saving model to training/weights-epoch_0006.ckpt
+235/235 [==============================] - 16s 66ms/step - loss: 0.1706 - accuracy: 0.9485
+Epoch 7/40
+234/235 [============================>.] - ETA: 0s - loss: 0.1473 - accuracy: 0.9552 
+Epoch 00007: saving model to training/weights-epoch_0007.ckpt
+235/235 [==============================] - 16s 66ms/step - loss: 0.1473 - accuracy: 0.9551
+Epoch 8/40
+234/235 [============================>.] - ETA: 0s - loss: 0.1305 - accuracy: 0.9604 
+Epoch 00008: saving model to training/weights-epoch_0008.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.1306 - accuracy: 0.9603
+Epoch 9/40
+234/235 [============================>.] - ETA: 0s - loss: 0.1158 - accuracy: 0.9655 
+Epoch 00009: saving model to training/weights-epoch_0009.ckpt
+235/235 [==============================] - 17s 73ms/step - loss: 0.1158 - accuracy: 0.9654
+Epoch 10/40
+234/235 [============================>.] - ETA: 0s - loss: 0.1047 - accuracy: 0.9687 
+Epoch 00010: saving model to training/weights-epoch_0010.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.1046 - accuracy: 0.9687
+Epoch 11/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0950 - accuracy: 0.9712 
+Epoch 00011: saving model to training/weights-epoch_0011.ckpt
+235/235 [==============================] - 17s 73ms/step - loss: 0.0949 - accuracy: 0.9712
+Epoch 12/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0876 - accuracy: 0.9738 
+Epoch 00012: saving model to training/weights-epoch_0012.ckpt
+235/235 [==============================] - 16s 68ms/step - loss: 0.0875 - accuracy: 0.9738
+Epoch 13/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0802 - accuracy: 0.9757 
+Epoch 00013: saving model to training/weights-epoch_0013.ckpt
+235/235 [==============================] - 16s 68ms/step - loss: 0.0802 - accuracy: 0.9757
+Epoch 14/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0757 - accuracy: 0.9773 
+Epoch 00014: saving model to training/weights-epoch_0014.ckpt
+235/235 [==============================] - 16s 70ms/step - loss: 0.0757 - accuracy: 0.9773
+Epoch 15/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0706 - accuracy: 0.9787 
+Epoch 00015: saving model to training/weights-epoch_0015.ckpt
+235/235 [==============================] - 13s 56ms/step - loss: 0.0705 - accuracy: 0.9787
+Epoch 16/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0650 - accuracy: 0.9804 
+Epoch 00016: saving model to training/weights-epoch_0016.ckpt
+235/235 [==============================] - 17s 72ms/step - loss: 0.0650 - accuracy: 0.9804
+Epoch 17/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0623 - accuracy: 0.9813 
+Epoch 00017: saving model to training/weights-epoch_0017.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0622 - accuracy: 0.9813
+Epoch 18/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0591 - accuracy: 0.9821 
+Epoch 00018: saving model to training/weights-epoch_0018.ckpt
+235/235 [==============================] - 16s 66ms/step - loss: 0.0590 - accuracy: 0.9821
+Epoch 19/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0555 - accuracy: 0.9836 
+Epoch 00019: saving model to training/weights-epoch_0019.ckpt
+235/235 [==============================] - 16s 68ms/step - loss: 0.0554 - accuracy: 0.9836
+Epoch 20/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0524 - accuracy: 0.9845 
+Epoch 00020: saving model to training/weights-epoch_0020.ckpt
+235/235 [==============================] - 13s 55ms/step - loss: 0.0524 - accuracy: 0.9845
+Epoch 21/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0492 - accuracy: 0.9848 
+Epoch 00021: saving model to training/weights-epoch_0021.ckpt
+235/235 [==============================] - 17s 73ms/step - loss: 0.0493 - accuracy: 0.9847
+Epoch 22/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0486 - accuracy: 0.9851 
+Epoch 00022: saving model to training/weights-epoch_0022.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0486 - accuracy: 0.9852
+Epoch 23/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0456 - accuracy: 0.9865 
+Epoch 00023: saving model to training/weights-epoch_0023.ckpt
+235/235 [==============================] - 16s 69ms/step - loss: 0.0456 - accuracy: 0.9865
+Epoch 24/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0426 - accuracy: 0.9866 
+Epoch 00024: saving model to training/weights-epoch_0024.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0425 - accuracy: 0.9866
+Epoch 25/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0407 - accuracy: 0.9877 
+Epoch 00025: saving model to training/weights-epoch_0025.ckpt
+235/235 [==============================] - 16s 66ms/step - loss: 0.0407 - accuracy: 0.9877
+Epoch 26/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0397 - accuracy: 0.9879 
+Epoch 00026: saving model to training/weights-epoch_0026.ckpt
+235/235 [==============================] - 16s 70ms/step - loss: 0.0397 - accuracy: 0.9879
+Epoch 27/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0381 - accuracy: 0.9885 
+Epoch 00027: saving model to training/weights-epoch_0027.ckpt
+235/235 [==============================] - 16s 66ms/step - loss: 0.0381 - accuracy: 0.9885
+Epoch 28/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0371 - accuracy: 0.9886 
+Epoch 00028: saving model to training/weights-epoch_0028.ckpt
+235/235 [==============================] - 16s 66ms/step - loss: 0.0371 - accuracy: 0.9886
+Epoch 29/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0345 - accuracy: 0.9899 
+Epoch 00029: saving model to training/weights-epoch_0029.ckpt
+235/235 [==============================] - 15s 65ms/step - loss: 0.0345 - accuracy: 0.9899
+Epoch 30/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0328 - accuracy: 0.9905 
+Epoch 00030: saving model to training/weights-epoch_0030.ckpt
+235/235 [==============================] - 17s 72ms/step - loss: 0.0328 - accuracy: 0.9905
+Epoch 31/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0322 - accuracy: 0.9904 
+Epoch 00031: saving model to training/weights-epoch_0031.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0322 - accuracy: 0.9904
+Epoch 32/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0297 - accuracy: 0.9909 
+Epoch 00032: saving model to training/weights-epoch_0032.ckpt
+235/235 [==============================] - 15s 66ms/step - loss: 0.0297 - accuracy: 0.9909
+Epoch 33/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0292 - accuracy: 0.9911 
+Epoch 00033: saving model to training/weights-epoch_0033.ckpt
+235/235 [==============================] - 16s 69ms/step - loss: 0.0292 - accuracy: 0.9911
+Epoch 34/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0282 - accuracy: 0.9916 
+Epoch 00034: saving model to training/weights-epoch_0034.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0281 - accuracy: 0.9916
+Epoch 35/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0273 - accuracy: 0.9918 
+Epoch 00035: saving model to training/weights-epoch_0035.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0273 - accuracy: 0.9918
+Epoch 36/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0267 - accuracy: 0.9919 
+Epoch 00036: saving model to training/weights-epoch_0036.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0266 - accuracy: 0.9919
+Epoch 37/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0249 - accuracy: 0.9925 
+Epoch 00037: saving model to training/weights-epoch_0037.ckpt
+235/235 [==============================] - 16s 70ms/step - loss: 0.0248 - accuracy: 0.9925
+Epoch 38/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0240 - accuracy: 0.9929 
+Epoch 00038: saving model to training/weights-epoch_0038.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0240 - accuracy: 0.9929
+Epoch 39/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0239 - accuracy: 0.9927 
+Epoch 00039: saving model to training/weights-epoch_0039.ckpt
+235/235 [==============================] - 15s 66ms/step - loss: 0.0239 - accuracy: 0.9927
+Epoch 40/40
+234/235 [============================>.] - ETA: 0s - loss: 0.0229 - accuracy: 0.9930 
+Epoch 00040: saving model to training/weights-epoch_0040.ckpt
+235/235 [==============================] - 16s 67ms/step - loss: 0.0230 - accuracy: 0.9930
+dict_keys(['loss', 'accuracy'])
+[2.0267605781555176, 0.5777666568756104, 0.32334426045417786, 0.24684226512908936, 0.20181061327457428, 0.17064043879508972, 0.1473204493522644, 0.13055409491062164, 0.1158333346247673, 0.1046389639377594, 0.09491607546806335, 0.08751597255468369, 0.0801912173628807, 0.07572230696678162, 0.07051435858011246, 0.0649585947394371, 0.06224643066525459, 0.059023384004831314, 0.05542546510696411, 0.05237996578216553, 0.04930788278579712, 0.048591699451208115, 0.04559467360377312, 0.04251345992088318, 0.04066271334886551, 0.03967886418104172, 0.03814704716205597, 0.037141747772693634, 0.034516651183366776, 0.032785188406705856, 0.032164063304662704, 0.02969551272690296, 0.029163997620344162, 0.028147408738732338, 0.027311749756336212, 0.02663525752723217, 0.0248249564319849, 0.023953834548592567, 0.023874567821621895, 0.02300802804529667]
+[0.29374998807907104, 0.8441166877746582, 0.9061833620071411, 0.9260833263397217, 0.9391166567802429, 0.9485166668891907, 0.9551166892051697, 0.9603000283241272, 0.9654499888420105, 0.9686833620071411, 0.9712499976158142, 0.9738166928291321, 0.975683331489563, 0.9772666692733765, 0.978683352470398, 0.9804333448410034, 0.9812999963760376, 0.9821333289146423, 0.9835666418075562, 0.984499990940094, 0.9847166538238525, 0.9851666688919067, 0.9865333437919617, 0.9865833520889282, 0.9877499938011169, 0.9878833293914795, 0.9885333180427551, 0.9886166453361511, 0.9898666739463806, 0.9904999732971191, 0.9904166460037231, 0.9909166693687439, 0.9911166429519653, 0.9915666580200195, 0.9917833209037781, 0.9919333457946777, 0.9925333261489868, 0.992900013923645, 0.9926666617393494, 0.9929666519165039]
+2022-01-18 23:58:24.140849: W tensorflow/python/util/util.cc:368] Sets are not currently considered sequences, but this may change in the future, so consider avoiding using them.
+
+
+
+
+2022-01-19 00:03:10.087653: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory
+2022-01-19 00:03:10.087675: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.
+2022-01-19 00:03:13.903998: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcuda.so.1'; dlerror: libcuda.so.1: cannot open shared object file: No such file or directory
+2022-01-19 00:03:13.904020: W tensorflow/stream_executor/cuda/cuda_driver.cc:269] failed call to cuInit: UNKNOWN ERROR (303)
+2022-01-19 00:03:13.904037: I tensorflow/stream_executor/cuda/cuda_diagnostics.cc:156] kernel driver does not appear to be running on this host (5566-debian): /proc/driver/nvidia/version does not exist
+2022-01-19 00:03:13.904186: I tensorflow/core/platform/cpu_feature_guard.cc:151] This TensorFlow binary is optimized with oneAPI Deep Neural Network Library (oneDNN) to use the following CPU instructions in performance-critical operations:  AVX2 FMA
+To enable them in other operations, rebuild TensorFlow with the appropriate compiler flags.
+Model: "sequential"
+_________________________________________________________________
+ Layer (type)                Output Shape              Param #   
+=================================================================
+ conv2d (Conv2D)             (None, 28, 28, 6)         156       
+                                                                 
+ average_pooling2d (AverageP  (None, 14, 14, 6)        0         
+ ooling2D)                                                       
+                                                                 
+ conv2d_1 (Conv2D)           (None, 10, 10, 16)        2416      
+                                                                 
+ average_pooling2d_1 (Averag  (None, 5, 5, 16)         0         
+ ePooling2D)                                                     
+                                                                 
+ flatten (Flatten)           (None, 400)               0         
+                                                                 
+ dense (Dense)               (None, 120)               48120     
+                                                                 
+ dense_1 (Dense)             (None, 84)                10164     
+                                                                 
+ dense_2 (Dense)             (None, 10)                850       
+                                                                 
+=================================================================
+Total params: 61,706
+Trainable params: 61,706
+Non-trainable params: 0
+_________________________________________________________________
+313/313 - 1s - loss: 0.0397 - accuracy: 0.9883 - 1s/epoch - 4ms/step
+loss:  0.0396527498960495
+accuracy:  0.9883000254631042

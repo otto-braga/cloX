@@ -273,6 +273,7 @@ class Clock:
                 "\t| gesture_class", self.drawn_gestures[0].gesture_class, '\n',
                 '\t| classification_accuracy', self.drawn_gestures[0].gesture_classif_acc
             )
+            # print(self.drawn_gesture_classifier_model.summary())
 
     def draw_clock(self, image: numpy.ndarray) -> None:
         color = (0,0,128)
@@ -530,7 +531,7 @@ class ClockDrawnGesture:
             numpy.random.randint(0, 127),
             numpy.random.randint(0, 127)
         )
-        self.line_width_default = 40
+        self.line_width_default = 30
         self.line_width = 4
 
         self.is_catching = False
@@ -627,9 +628,10 @@ class ClockDrawnGesture:
         name = self.name
         image = self.image
         image = cv2.cvtColor(image, cv2.COLOR_RGBA2GRAY).astype('uint8')
-        if save_img_files: cv2.imwrite("gesture/gesture_" + name + "-00.png", image)
+        _, image = cv2.threshold(image, 5, 255, cv2.THRESH_BINARY)
+        if save_img_files: cv2.imwrite("gesture/output/gesture_" + name + "-00.png", image)
         rect = [0,0,0,0]
-        border = int(self.line_width / 2)
+        border = 2 * self.line_width
         rect[0] = (
             numpy.clip(
                 numpy.min(self.points[:, 0]) - border,
@@ -659,12 +661,12 @@ class ClockDrawnGesture:
             )
         )
         image = image[rect[2]:rect[3], rect[0]:rect[1]]
-        if save_img_files: cv2.imwrite("gesture/gesture_" + name + "-01-cropped.png", image)
+        if save_img_files: cv2.imwrite("gesture/output/gesture_" + name + "-01-cropped.png", image)
         image = cv2.resize(image, (28,28))
-        if save_img_files: cv2.imwrite("gesture/gesture_" + name + "-02-resized.png", image)
+        if save_img_files: cv2.imwrite("gesture/output/gesture_" + name + "-02-resized.png", image)
         image = image / 255
         if save_img_files: cv2.imwrite(
-            "gesture/gesture_" + name + "-03-normalized.png", image
+            "gesture/output/gesture_" + name + "-03-normalized.png", image
         )
         image = image.reshape(1,28,28,1)
 
@@ -674,6 +676,25 @@ class ClockDrawnGesture:
             self.gesture_classes = res
             self.gesture_classif_acc = max(res)
 
+            class_image_output = self.image.copy()
+            class_image_output = cv2.putText(
+                class_image_output,
+                'class: ' + str(numpy.argmax(res)),
+                (
+                    int(self.image_size[0] * 0.1),
+                    int(self.image_size[1] - self.image_size[1] * 0.1)
+                ),
+                cv2.FONT_HERSHEY_PLAIN,
+                8,
+                (127,0,255),
+                5
+            )
+            class_image_output = cv2.cvtColor(class_image_output, cv2.COLOR_RGBA2GRAY).astype('uint8')
+            if save_img_files: cv2.imwrite(
+                "gesture/output/gesture_" + name + "-04-classification.png",
+                class_image_output
+            )
+
     def update(self, clock: Clock) -> None:
         self.clock = clock
         if self.image_size == None:
@@ -682,7 +703,8 @@ class ClockDrawnGesture:
 
         self._scale()
         self._catch()
-        self._classify()
+        
+        if not self.is_catching: self._classify()
 
 
 
@@ -735,9 +757,9 @@ def load_from_project(project: dict) -> list:
                     drawn_gesture_new
                 )
 
-            if "classifier_model_path" in clock:
+            if "is_classifier" in clock:
                 clock_new.drawn_gesture_classifier_model = keras.models.load_model(
-                    clock['classifier_model_path']
+                    'gesture/model'
                 )
 
         if "is_clipped" in clock:
