@@ -28,6 +28,12 @@
                 }
             ],
             "is_classifier": "dummy"
+        },
+        {
+            "name": "clock_B",
+            "i_p_clock": [2,4,-1,-1],
+            "i_p_hand": [2,8,-1,-1],
+            "scale_mode": 3
         }
     ]
 }

@@ -73,7 +73,6 @@ def main():
             or any([index == 2 for index in index_list])
         ):
             is_mp_hands = True
-        # print([index_list == 0])
 
     mp_parsed = MediapipeParsed([camera_width, camera_height])
 
@@ -112,18 +111,19 @@ def main():
         # ---------
 
         image.flags.writeable = False
-        mp_pose_results = mp_pose.process(image) if is_mp_pose else None
-        mp_hands_results = mp_hands.process(image) if is_mp_hands else None
+        mp_pose_results = mp_pose.process(image).pose_landmarks if is_mp_pose else None
+        mp_hands_raw = mp_hands.process(image)
+        mp_hands_results = mp_hands_raw.multi_hand_landmarks if mp_hands_raw else None
         image.flags.writeable = True
 
-        # print(is_mp_pose)
+        # print(mp_hands_raw.multi_handedness)
 
         mp_parsed.update(
             [
-                mp_pose_results.pose_landmarks,
-                mp_parsed.solution[1],
-                mp_parsed.solution[2]
+                mp_pose_results,
+                mp_hands_results,
             ],
+            mp_hands_raw.multi_handedness,
             True,
             False
         )
@@ -170,14 +170,14 @@ def main():
 
         image = numpy.zeros(image.shape, dtype=numpy.uint8)
 
-        draw_mediapipe_results(mp_parsed.solution, image)
+        draw_mediapipe_results([mp_pose_results, mp_hands_results], image)
         # draw_mediapipe_parsed_landmarks(mp_parsed, image)
 
         image = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)
         image = cv2.cvtColor(image, cv2.COLOR_GRAY2RGBA)
 
         for clock in clocks:
-            clock.print_clock()
+            # clock.print_clock()
             image = clock.draw_clock(image)
 
         cv2.imshow(window_title, image)
@@ -212,22 +212,17 @@ def draw_mediapipe_results(mp_results, image):
             mp_solutions.drawing_styles.get_default_pose_landmarks_style()
         )
     )
-    mp_solutions.drawing_utils.draw_landmarks(
-        image,
-        mp_results[1],
-        mp_solutions.hands.HAND_CONNECTIONS,
-        landmark_drawing_spec = (
-            mp_solutions.drawing_styles.get_default_hand_landmarks_style()
-        )
-    )
-    mp_solutions.drawing_utils.draw_landmarks(
-        image,
-        mp_results[2],
-        mp_solutions.hands.HAND_CONNECTIONS,
-        landmark_drawing_spec = (
-            mp_solutions.drawing_styles.get_default_hand_landmarks_style()
-        )
-    )
+
+    if mp_results[1]:
+        for hand in mp_results[1]:
+            mp_solutions.drawing_utils.draw_landmarks(
+                image,
+                hand,
+                mp_solutions.hands.HAND_CONNECTIONS,
+                landmark_drawing_spec = (
+                    mp_solutions.drawing_styles.get_default_hand_landmarks_style()
+                )
+            )
 
 def draw_mediapipe_parsed_landmarks(mp_parsed, image):
     for i in range(len(mp_parsed.landmark)):

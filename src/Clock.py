@@ -83,7 +83,7 @@ class Clock:
 
         self.drawn_gestures = drawn_gestures
         self.drawn_gesture_classifier_model = None
-        self.drawn_gesture_class = None
+        self.drawn_gesture_class = -1
         self.drawn_gesture_classes = None
         self.drawn_gesture_classif_acc = None
 
@@ -269,10 +269,13 @@ class Clock:
                 "\t| direction", self.tracker.direction, '\n',
                 "\t| speed", self.tracker.speed, '\n',
                 "\t| p_clock_abs", self.p_clock_abs, " | p_hand_abs", self.p_hand_abs, '\n',
-                "\t| scale", self.scale, '\n',
-                "\t| gesture_class", self.drawn_gestures[0].gesture_class, '\n',
-                '\t| classification_accuracy', self.drawn_gestures[0].gesture_classif_acc
+                "\t| scale", self.scale, '\n'
             )
+            for gesture in self.drawn_gestures:
+                print(
+                    "\t| gesture", gesture.name, "classification: ", '\n',
+                    gesture.gesture_class, gesture.gesture_classif_acc, '\n'
+                )
             # print(self.drawn_gesture_classifier_model.summary())
 
     def draw_clock(self, image: numpy.ndarray) -> None:
@@ -280,7 +283,7 @@ class Clock:
         cv2.circle(image, self.p_clock_abs.astype(int), int(self.r_clock), color, 1)
         cv2.line(image, self.p_clock_abs.astype(int), self.p_hand_abs.astype(int), color, 2)
 
-        if self.drawn_gestures:
+        if self.drawn_gestures and self.is_calibrated:
             for drawn_gesture in self.drawn_gestures:
                 added_image = cv2.addWeighted(
                     image, 1, drawn_gesture.image, 0.5, 0
@@ -303,7 +306,7 @@ class Clock:
         
         self.tracker.update(self)
     
-        if self.drawn_gestures:
+        if self.drawn_gestures and self.is_calibrated:
             for drawn_gesture in self.drawn_gestures:
                 drawn_gesture.update(self)
 
@@ -312,14 +315,14 @@ class Clock:
 
 class ClockPHand:
     def __init__(self):
-        self.r = 0.0
-        self.angle = 0.0
-        self.x = 0.0
-        self.y = 0.0
-        self.direction = numpy.zeros([2], dtype=float)
-        self.velocity = numpy.zeros([2], dtype=float)
-        self.speed = 0.0
-        self.speed_average = 0.0
+        self.r = -1.0
+        self.angle = -1.0
+        self.x = -1.0
+        self.y = -1.0
+        self.direction = numpy.full([2], -1.0, dtype=float)
+        self.velocity = numpy.full([2], -1.0, dtype=float)
+        self.speed = -1.0
+        self.speed_average = -1.0
 
 
 
@@ -462,9 +465,13 @@ class ClockOSCHandler:
                             msg[address_g + 'point_y_' + str(i)] = (
                                 int(drawn_gesture.points[i,1])
                             )
+                    
+                    msg[address_g + 'classification'] = (
+                        float(drawn_gesture.gesture_class)
+                    )
 
         for address, value in msg.items():
-            # print(address, value)
+            print(address, value)
             for client in self.osc_clients:
                 client.send_message(address, value)
             
@@ -538,9 +545,9 @@ class ClockDrawnGesture:
         self.image = None
         self.points = numpy.array([])
 
-        self.gesture_class = None
+        self.gesture_class = -1
         self.gesture_classes = None
-        self.gesture_classif_acc = None
+        self.gesture_classif_acc = -1
 
     def _scale(self) -> None:
         self.line_width = (
